@@ -1,0 +1,29 @@
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Article AI</title>
+  <link rel="manifest" href="site.webmanifest" />
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename = 'icon.svg') }}" />
+  <link rel="apple-touch-icon" type="image/png" href="{{ url_for('static', filename = 'icon.svg') }}" />
+  <link rel="canonical" href="https://github.com/huksley/article-ai" />
+  <meta name="author" content="Article AI" />
+  <meta name="theme-color" content="#4caf50" />
+  <meta name="description" content="SpaCy based article analytics API" />
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="og:site_name" content="Article AI" />
+  <meta property="og:url" content="https://github.com/huksley/article-ai" />
+  <meta property="og:title" content="Article AI" />
+  <meta property="og:description" content="SpaCy based article analytics API" />
+  <meta property="og:locale" content="en-us" />
+  <meta property="og:type" content="article" />
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename = 'style.css') }}" />
+  <script async defer data-domain="valosan.com" src="https://stats.valoisan.com/js/collect.js"></script>
+  <link rel="stylesheet" type="text/css" href="https://githubraw.com/alvaromontoro/almond.css/master/dist/almond.css" />
+</head>
+
+<body>
+  {{ content|safe }}
+</body>
+
+</html>

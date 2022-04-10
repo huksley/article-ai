@@ -1,0 +1,6 @@
+.vscode
+node_modules
+wsgi_handler.py
+.serverless
+.serverless-wsgi
+serverless_wsgi.py

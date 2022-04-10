@@ -1,0 +1,70 @@
+service: article-ai
+frameworkVersion: ^2
+
+plugins:
+  - serverless-python-requirements
+  - serverless-wsgi
+  - serverless-apigw-binary
+  - serverless-domain-manager
+  - serverless-s3-block-public-access
+  - serverless-plugin-test-helper
+
+custom:
+  customDomains:
+    # http + regional is a cheaper option
+    # regional does not support HTTP->HTTPS redirection
+    # http does not support regional endpoints
+    - rest:
+        domainName: ${env:CUSTOM_DOMAIN, 'article-ai.ruslan.org'}
+        createRoute53Record: true
+        createRoute53IPv6Record: true
+        eendpointType: "regional"
+        enabled: ${env:CUSTOM_DOMAIN_ENABLED, 'true'}
+  wsgi:
+    app: app.app
+    packRequirements: false
+  pythonRequirements:
+    dockerizePip: non-linux
+    layer: true
+  # Add binary images as handled in API gateway
+  apigwBinary:
+    types:
+      - "image/*"
+      - "application/font*"
+      - "application/pdf"
+      # This allows binary conversion without Accept: image/* in request
+      - "*/*"
+
+provider:
+  name: aws
+  runtime: python3.8
+  timeout: 30
+  stage: default
+  memorySize: 2048
+  region: eu-west-1
+  logRetentionInDays: 30
+  apiGateway:
+    shouldStartNameWithService: true
+  environment:
+    FLASK_SECRET_KEY: ${env:FLASK_SECRET_KEY, 'changeme'}
+
+package:
+  exclude:
+    - "README.md"
+    - ".editorconfig"
+    - "LICENSE.md"
+    - ".git/**"
+    - ".github/**"
+    - ".vscode/**"
+    - ".gitignore"
+    - "node_modules/**"
+    - "test/**"
+
+functions:
+  app:
+    handler: wsgi_handler.handler
+    layers:
+      - Ref: PythonRequirementsLambdaLayer
+    events:
+      - http: ANY /
+      - http: "ANY /{proxy+}"

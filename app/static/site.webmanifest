@@ -1,0 +1,9 @@
+{
+    "icons": [{
+        "src": "static/icon.svg",
+        "sizes": "128x128",
+        "type": "image/svg+xml"
+    }],
+    "display": "standalone",
+    "start_url": "./?utm_source=web_app_manifest"
+}

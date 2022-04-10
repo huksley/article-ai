@@ -1,0 +1,29 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pylint = "*"
+autopep8 = "*"
+watchdog = "*"
+argh = "*"
+pyyaml = "*"
+
+[packages]
+flask = "*"
+spacy = "*"
+en-core-web-sm = {file = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.2.0/en_core_web_sm-3.2.0-py3-none-any.whl"}
+
+[requires]
+python_version = "3.8"
+
+[scripts]
+python = "python"
+app = "python -m app"
+dev = "watchmedo auto-restart --recursive -p '*.py;*.yaml' -i '.serverless/*;node_modules' python -- -m app"
+lint = "pylint app"
+deploy = "npx serverless deploy"
+undeploy = "npx serverless remove"
+serve = "npx serverless wsgi serve"
+sls = "npx serverless"

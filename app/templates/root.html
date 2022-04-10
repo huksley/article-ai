@@ -1,0 +1,77 @@
+<div class="center">
+
+    <h1>Article AI</h1>
+
+    <p>
+        SpaCy based article analytics API
+    </p>
+
+    <form method="POST" action="/process">
+
+        <div>
+            <select id="model">
+                <option value="en_core_web_sm">English, small</option>
+                <option value="en_core_web_md">English, medium</option>
+                <option value="en_core_web_lg">English, large</option>
+                <option value="en_core_web_trf">en_core_web_trf</option>
+                <option value="xx_ent_wiki_sm">xx_ent_wiki_sm</option>
+            </select>
+        </div>
+        <div>
+            <textarea class="text" rows="20" cols="70" style="height: 450px"></textarea>
+        </div>
+        <button id="processButton">Process</button>
+        <div id="result"></div>
+    </form>
+
+
+    <script type="module">
+        const button = document.getElementById("processButton")
+        button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            const texts = Array.from(document.querySelectorAll("textarea.text")).map(t => t.value)
+            const model = document.getElementById("model").value
+            const request = {
+                model,
+                texts
+            }
+            console.info("Sending", request)
+            fetch("/process", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(request)
+            }).then(response => response.json()).then(response => {
+                console.info("Response", response)
+                const result = document.getElementById("result")
+                let str = ""
+                response.forEach(doc => {
+                    str += "<h2>Document entities</h3>";
+                    let ents = doc.ents.map(e => ({ text: e.text, label: e.label }))
+                    ents = ents.filter((e, index) => ents.findIndex(ee => ee.text === e.text) === index)
+                    ents.forEach(e => {
+                        str += "<span class=\"entity\">" + e.label + ": " + e.text + "</span> ";
+                    })
+
+                    if (doc.similarity) {
+                        str += "<h2>Similarity</h2>"
+                        str += "<span class=\"entity\">" + doc.similarity + "</span>"
+                    }
+
+                    if (doc.score) {
+                        str += "<h2>Score</h2>"
+                        str += "<span class=\"entity\">" + doc.score + "</span>"
+                    }
+
+                    if (doc.sentiment) {
+                        str += "<h2>Sentiment</h2>"
+                        str += "<span class=\"entity\">" + doc.sentiment + "</span>"
+                    }
+                })
+                result.innerHTML = str;
+            })
+        })
+    </script>
+</div>
