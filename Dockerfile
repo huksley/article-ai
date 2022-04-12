@@ -6,14 +6,18 @@ ENV CI true
 ENV FLASK_RUN_HOST 0.0.0.0
 ENV FLASK_ENV production 
 
-COPY . /app
-WORKDIR /app
+RUN apt-get update && \
+    apt-get install -y curl && \
+    pip install pipenv
 
-RUN apt-get update && apt-get install -y curl && \
-    pip install pipenv && \
-    pipenv install && \
-    pipenv run python -m textblob.download_corpora && \
-    pipenv run python -m spacy download en_core_web_sm
+RUN mkdir -p /app
+COPY Pipfile* /app
+WORKDIR /app
+RUN pipenv install
+COPY download.sh /app
+RUN pipenv run download
+
+COPY . /app
 
 EXPOSE 8000
 CMD ["pipenv", "run", "app"]
