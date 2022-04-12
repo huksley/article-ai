@@ -179,7 +179,7 @@ class PythonObjectEncoder(json.JSONEncoder):
 def process_texts(model, texts):
     """
     Process a batch of articles and return the entities predicted by the
-    given model. 
+    given model.
     """
     if MODELS.get(model) is None:
         logger.info("Loading model %s", model)
@@ -220,13 +220,13 @@ def test():
         There’s no easy fix, but an emerging cohort of startups is pitching software as a way to potentially anticipate — and respond to — market shocks. One, Tive, provides supply chain visibility insights that ostensibly help companies manage their in-transit shipments’ location and condition. Tive today announced that it raised $54 million in a Series B financing round led by AXA Venture Partners with participation from Sorenson Capital, Qualcomm Ventures, Fifth Wall, SJF Ventures and Floating Point Ventures, which CEO Krenar Komoni's article attributes to the company’s growth over the past year.
         """,
         """
-        April 11, 2022 –Tive, the technology leader in the new era of supply chain and logistics visibility, today announced the closing of a $54M Series B funding led by AXA Venture Partners, with participation from Sorenson Capital, Qualcomm Ventures, Fifth Wall, SJF Ventures and Floating Point Ventures as well as the existing investors RRE Ventures, Two Sigma Ventures, NextView Ventures, Hyperplane Ventures, Broom Ventures, and Supply Chain Ventures.   
+        April 11, 2022 –Tive, the technology leader in the new era of supply chain and logistics visibility, today announced the closing of a $54M Series B funding led by AXA Venture Partners, with participation from Sorenson Capital, Qualcomm Ventures, Fifth Wall, SJF Ventures and Floating Point Ventures as well as the existing investors RRE Ventures, Two Sigma Ventures, NextView Ventures, Hyperplane Ventures, Broom Ventures, and Supply Chain Ventures.
 
-        In 2021, Tive grew its revenue by over 300%, acquired more than 200 new customers and expanded its global footprint. This latest investment will fuel Tive's rapidly growing international presence, with the expansion of global sales and marketing initiatives. In addition, it will accelerate the development and introduction of next-generation solutions, services and bring actionable supply chain intelligence and 24/7 monitoring to the market.  
+        In 2021, Tive grew its revenue by over 300%, acquired more than 200 new customers and expanded its global footprint. This latest investment will fuel Tive's rapidly growing international presence, with the expansion of global sales and marketing initiatives. In addition, it will accelerate the development and introduction of next-generation solutions, services and bring actionable supply chain intelligence and 24/7 monitoring to the market.
 
         #1 in Supply Chain and Logistics Condition and Location Monitoring
 
-        Tive continues to outpace and out-innovate the competition with the most advanced multi-sensor trackers, a truly intuitive SaaS application, and live 24/7 shipment monitoring service. As the leading provider of supply chain tracking technology, Tive has delivered real-time shipment visibility in more than 200 countries, and helped save thousands of shipments from being delayed, damaged, spoiled, or rejected.  
+        Tive continues to outpace and out-innovate the competition with the most advanced multi-sensor trackers, a truly intuitive SaaS application, and live 24/7 shipment monitoring service. As the leading provider of supply chain tracking technology, Tive has delivered real-time shipment visibility in more than 200 countries, and helped save thousands of shipments from being delayed, damaged, spoiled, or rejected.
         """
     ]
     response_body = process_texts("en_core_web_sm", texts)
@@ -243,6 +243,9 @@ def process():
     response_body = process_texts(model, texts)
     resp = Response(json.dumps(response_body, cls=PythonObjectEncoder))
     resp.headers['Content-Type'] = 'application/json'
+    resp.headers['Cache-Control'] = 'no-cache, no-store, max-age=0'
+    resp.headers['Access-Control-Max-Age'] = '86400'
+    resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
 
