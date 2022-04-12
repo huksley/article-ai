@@ -30,7 +30,8 @@ def dev():
 
 app = Flask(__name__)
 
-app.secret_key = os.environ['FLASK_SECRET_KEY']
+app.secret_key = os.environ['FLASK_SECRET_KEY'] if os.environ.get(
+    'FLASK_SECRET_KEY') is not None else "123"
 
 if dev() and False:
     http.client.HTTPConnection.debuglevel = 1
@@ -50,6 +51,20 @@ app.config['TEMPLATES_AUTO_RELOAD'] = 1 if dev() else 0
 
 @app.route("/")
 def root():
+    """Root page"""
+    host = request.headers['Host']
+    logger.info("Host: %s remote %s", host, request.remote_addr)
+    if re.match(r'^www\.', host):
+        return redirect("http://" + re.sub(r'^www\.', "", host), 301)
+    content = render_template("root.html")
+    webpage = render_template("index.html", content=content)
+    resp = Response(webpage)
+    resp.headers['Strict-Transport-Security'] = 'max-age=63072000'  # 2 years
+    return resp
+
+
+@app.route("/default")
+def default():
     """Root page"""
     host = request.headers['Host']
     logger.info("Host: %s remote %s", host, request.remote_addr)
@@ -94,7 +109,7 @@ class ModelName(str, Enum):
 MODELS = {}
 
 
-@app.get("/models")
+@app.route("/models")
 def get_models() -> List[str]:
     """Return a list of all available loaded models."""
     return json.dumps([model.value for model in ModelName])
@@ -199,7 +214,7 @@ def process_texts(model, texts):
     return response
 
 
-@app.get("/test")
+@app.route("/test")
 def test():
     texts = [
         """
@@ -223,7 +238,7 @@ def test():
     return resp
 
 
-@app.post("/process")
+@app.route("/process", methods=('POST',))
 def process():
     data = request.get_json()
     model = data.get("model") or "en_core_web_md"

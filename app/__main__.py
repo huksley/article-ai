@@ -4,4 +4,6 @@ from . import get_app
 app = get_app()
 
 if __name__ == "__main__":
-    app.run(port=8088)
+    app.jinja_env.auto_reload = True
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    app.run(host='0.0.0.0', port=8000)

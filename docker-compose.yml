@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    image: article-ai-dev
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "-i", "http://localhost:8000/"]
+    ports:
+      - "8000:8000"

@@ -15,17 +15,18 @@ custom:
     # regional does not support HTTP->HTTPS redirection
     # http does not support regional endpoints
     - rest:
-        domainName: ${env:CUSTOM_DOMAIN, 'article-ai.ruslan.org'}
+        domainName: "article-ai.ruslan.org"
         createRoute53Record: true
         createRoute53IPv6Record: true
-        eendpointType: "regional"
-        enabled: ${env:CUSTOM_DOMAIN_ENABLED, 'true'}
+        endpointType: edge
+        enabled: true
   wsgi:
     app: app.app
     packRequirements: false
   pythonRequirements:
     dockerizePip: non-linux
     layer: true
+    #slim: true
   # Add binary images as handled in API gateway
   apigwBinary:
     types:
@@ -67,4 +68,5 @@ functions:
       - Ref: PythonRequirementsLambdaLayer
     events:
       - http: ANY /
+      - http: ANY /process
       - http: "ANY /{proxy+}"
