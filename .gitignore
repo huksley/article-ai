@@ -4,3 +4,4 @@ wsgi_handler.py
 .serverless
 .serverless-wsgi
 serverless_wsgi.py
+.DS_Store

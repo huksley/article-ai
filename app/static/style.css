@@ -21,8 +21,27 @@ div.center {
   margin-right: 2em;
 }
 
+form input,
+form select,
+form button,
+form textarea {
+  margin-bottom: 1em;
+}
+
 span.entity {
   border: 1px solid #d0d0d0;
   padding: 6px;
   display: inline-block;
+}
+
+.entities {
+  margin-top: 1em;
+}
+
+.entities .entity:only-child {
+  font-weight: bold;
+}
+
+ul {
+  width: 600px;
 }

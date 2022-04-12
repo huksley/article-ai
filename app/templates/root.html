@@ -1,4 +1,4 @@
-<div class="center">
+<div>
 
     <h1>Article AI</h1>
 
@@ -48,27 +48,64 @@
                 const result = document.getElementById("result")
                 let str = ""
                 response.forEach(doc => {
+                    str += "<div class=\"doc\">"
                     str += "<h2>Document entities</h3>";
+                    str += "<i>A named entity is a “real-world object” that’s assigned a name – for example, a person, a country, a product or a book title. spaCy can recognize various types of named entities in a document, by asking the model for a prediction. </i>"
                     let ents = doc.ents.map(e => ({ text: e.text, label: e.label }))
                     ents = ents.filter((e, index) => ents.findIndex(ee => ee.text === e.text) === index)
+                    const mapped = {}
                     ents.forEach(e => {
-                        str += "<span class=\"entity\">" + e.label + ": " + e.text + "</span> ";
+                        if (!mapped[e.label]) {
+                            mapped[e.label] = []
+                        }
+                        mapped[e.label].push(e.text)
                     })
+
+                    str += "<ul>"
+                    Object.keys(mapped).sort().forEach(label => {
+                        const value = mapped[label]
+                        str += "<li class=\"entity\"><b>" + label + "</b>: " + value.sort().join(", ") + "</li>";
+                    })
+                    str += "</ul>"
 
                     if (doc.similarity) {
                         str += "<h2>Similarity</h2>"
+                        str += "<div class=\"entities\">"
                         str += "<span class=\"entity\">" + doc.similarity + "</span>"
+                        str += "</div>"
                     }
 
                     if (doc.score) {
                         str += "<h2>Score</h2>"
+                        str += "<div class=\"entities\">"
                         str += "<span class=\"entity\">" + doc.score + "</span>"
+                        str += "</div>"
                     }
 
                     if (doc.sentiment) {
                         str += "<h2>Sentiment</h2>"
+                        str += "<div class=\"entities\">"
                         str += "<span class=\"entity\">" + doc.sentiment + "</span>"
+                        str += "</div>"
                     }
+
+                    if (doc.subjectivity) {
+                        str += "<h2>Subjectivity</h2>"
+                        str += "<i>Subjectivity is a float value within the range [0.0 to 1.0] where 0.0 is very objective and 1.0 is very subjective. Subjective sentence expresses some personal feelings, views, beliefs, opinions, allegations, desires, beliefs, suspicions, and speculations where as Objective sentences are factual.</i>"
+                        str += "<div class=\"entities\">"
+                        str += "<span class=\"entity\">" + doc.subjectivity + "</span>"
+                        str += "</div>"
+                    }
+
+                    if (doc.polarity) {
+                        str += "<h2>Polarity</h2>"
+                        str += "<i>Polarity is a float value within the range [-1.0 to 1.0] where 0 indicates neutral, +1 indicates a very positive sentiment and -1 represents a very negative sentiment.</i>"
+                        str += "<div class=\"entities\">"
+                        str += "<span class=\"entity\">" + doc.polarity + "</span>"
+                        str += "</div>"
+
+                    }
+                    str += "</div>"
                 })
                 result.innerHTML = str;
             })
