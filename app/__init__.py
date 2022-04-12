@@ -203,26 +203,18 @@ def process_texts(model, texts):
 def test():
     texts = [
         """
-        A partnership between Finnish eco materials company Sulapac and Dubai-based sustainability startup BIRD Collaborative has seen millions of sustainable straws made from a patented wood chip and plant resin delivered to luxury hotels, restaurants, wellness centres and clubs in the United Arab Emirates since 2021.
+        Supply chain disruptions — triggered by factors including demand surges, high transportation costs and pandemic-related lockdowns — are expected to continue well into next year, experts predict. Companies are experiencing the brunt of the impact, with 36% of small businesses responding to a 2021 U.S. Census survey reporting that they’ve experienced delays with domestic suppliers. This has been costly. According to a 2020 Statista survey, 41% of executives in the automotive and transportation industry alone said their company lost $50 to $100 million due to supply chain issues, a figure which has likely climbed higher since.
 
-Hotels already offering the sustainable straws as part of the guest experience include The St. Regis Downtown Dubai, Four Seasons Resort Dubai and Caesars Palace Dubai. High-end restaurants and wellness centre clients include Iris Lounge and Bar Du Port (managed by Addmind), Tashas Restaurants, Flamingo Room, and Avli (which is managed by Tashas Group).
-
-At The St. Regis Downtown Dubai, the straws are being used in all restaurants and bars, in-room dining services and supplied with takeaways.
-
-“We are delighted to partner with BIRD Collaborative and move towards a more sustainable operation here at The St. Regis Downtown Dubai. We all need to focus on sustainability and simple solutions, like using alternatives to conventional plastic for everyday products, are an easy starting point,” explains Raja Zeidan, the hotel’s General Manager.
+        There’s no easy fix, but an emerging cohort of startups is pitching software as a way to potentially anticipate — and respond to — market shocks. One, Tive, provides supply chain visibility insights that ostensibly help companies manage their in-transit shipments’ location and condition. Tive today announced that it raised $54 million in a Series B financing round led by AXA Venture Partners with participation from Sorenson Capital, Qualcomm Ventures, Fifth Wall, SJF Ventures and Floating Point Ventures, which CEO Krenar Komoni's article attributes to the company’s growth over the past year.
         """,
         """
-        United Arab Emirates luxury hotels and high-end outlets incorporate premium sustainable straws amidst a global move towards not using conventional plastic
+        April 11, 2022 –Tive, the technology leader in the new era of supply chain and logistics visibility, today announced the closing of a $54M Series B funding led by AXA Venture Partners, with participation from Sorenson Capital, Qualcomm Ventures, Fifth Wall, SJF Ventures and Floating Point Ventures as well as the existing investors RRE Ventures, Two Sigma Ventures, NextView Ventures, Hyperplane Ventures, Broom Ventures, and Supply Chain Ventures.   
 
-Finnish Sulapac and UAE-based BIRD Collaborative take the lead in the Emirates; with millions of straws distributed since 2021. Made of wood chips and plant-based binders, the straws incorporate sustainability, functionality and innovation.
+        In 2021, Tive grew its revenue by over 300%, acquired more than 200 new customers and expanded its global footprint. This latest investment will fuel Tive's rapidly growing international presence, with the expansion of global sales and marketing initiatives. In addition, it will accelerate the development and introduction of next-generation solutions, services and bring actionable supply chain intelligence and 24/7 monitoring to the market.  
 
-HELSINKI, Finland (April 7, 2022) Several luxury hotels in the United Arab Emirates have chosen sustainable straws by the Finnish material innovation company Sulapac to be used in their restaurants. The hotels include the St. Regis Downtown, Four Seasons Resort Dubai, and Caesars Palace Dubai, amongst others.
+        #1 in Supply Chain and Logistics Condition and Location Monitoring
 
-In addition to hotels, high-end restaurants, wellness centres, and clubs, such as Iris Lounge and Bar Du Port (managed by Addmind), and Tashas Restaurants, Flamingo Room, and Avli (managed by Tashas Group) are making the switch to sustainability and have started incorporating sustainable straws.
-
-UAE luxury hotel, The St. Regis Downtown Dubai, has taken sustainability to the next level and started using the sustainable straws in all of its restaurants and bars, in-room dining services and takeaway options.
-
-“We are delighted to partner with Bird Collaborative and move towards a more sustainable operation here at The St. Regis Downtown Dubai. We all need to focus on sustainability and simple solutions, like using alternatives to conventional plastic for everyday products, are an easy starting point,” says Raja Zeidan, General Manager at St. Regis Downtown Dubai.
+        Tive continues to outpace and out-innovate the competition with the most advanced multi-sensor trackers, a truly intuitive SaaS application, and live 24/7 shipment monitoring service. As the leading provider of supply chain tracking technology, Tive has delivered real-time shipment visibility in more than 200 countries, and helped save thousands of shipments from being delayed, damaged, spoiled, or rejected.  
         """
     ]
     response_body = process_texts("en_core_web_sm", texts)
