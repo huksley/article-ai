@@ -5,3 +5,4 @@ wsgi_handler.py
 .serverless-wsgi
 serverless_wsgi.py
 .DS_Store
+*.zip
