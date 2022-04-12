@@ -6,12 +6,9 @@ import http.client
 import os
 import re
 from enum import Enum
-import pickle
 import numpy as np
 
 import logging
-from json import loads
-import requests
 from spacytextblob.spacytextblob import SpacyTextBlob
 from flask import Flask, redirect, render_template, send_from_directory, request, url_for, session, Response
 
@@ -28,9 +25,9 @@ def dev():
     return os.environ.get("AWS_EXECUTION_ENV") is None
 
 
-app = Flask(__name__)
+application = Flask(__name__)
 
-app.secret_key = os.environ['FLASK_SECRET_KEY'] if os.environ.get(
+application.secret_key = os.environ['FLASK_SECRET_KEY'] if os.environ.get(
     'FLASK_SECRET_KEY') is not None else "123"
 
 if dev() and False:
@@ -41,15 +38,15 @@ if not dev():
     logging.getLogger("werkzeug").setLevel(logging.WARN)
 
 if dev():
-    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+    application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-app.config['TEMPLATES_AUTO_RELOAD'] = 1 if dev() else 0
+application.config['TEMPLATES_AUTO_RELOAD'] = 1 if dev() else 0
 
 
-@app.route("/")
+@application.route("/")
 def root():
     """Root page"""
     host = request.headers['Host']
@@ -63,7 +60,7 @@ def root():
     return resp
 
 
-@app.route("/default")
+@application.route("/default")
 def default():
     """Root page"""
     host = request.headers['Host']
@@ -77,20 +74,20 @@ def default():
     return resp
 
 
-@app.route("/favicon.ico")
+@application.route("/favicon.ico")
 def favicon():
     """Redirect to proper favicon"""
     return redirect("static/icon.svg", code=302)
 
 
-@app.route('/robots.txt')
-@app.route('/site.webmanifest')
+@application.route('/robots.txt')
+@application.route('/site.webmanifest')
 def static_from_root():
     """Mapping for static files"""
-    return send_from_directory(app.static_folder, request.path[1:])
+    return send_from_directory(application.static_folder, request.path[1:])
 
 
-@app.route("/index.html")
+@application.route("/index.html")
 def index():
     """Old root page"""
     return redirect(".", 302)
@@ -109,7 +106,7 @@ class ModelName(str, Enum):
 MODELS = {}
 
 
-@app.route("/models")
+@application.route("/models")
 def get_models() -> List[str]:
     """Return a list of all available loaded models."""
     return json.dumps([model.value for model in ModelName])
@@ -214,7 +211,7 @@ def process_texts(model, texts):
     return response
 
 
-@app.route("/test")
+@application.route("/test")
 def test():
     texts = [
         """
@@ -238,7 +235,7 @@ def test():
     return resp
 
 
-@app.route("/process", methods=('POST',))
+@application.route("/process", methods=('POST',))
 def process():
     data = request.get_json()
     model = data.get("model") or "en_core_web_md"
@@ -249,6 +246,8 @@ def process():
     return resp
 
 
-def get_app():
-    """Get app instance"""
-    return app
+if __name__ == "__main__":
+    # Setting debug to True enables debug output. This line should be
+    # removed before deploying a production app.
+    application.debug = True
+    application.run()

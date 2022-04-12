@@ -11,11 +11,10 @@ argh = "*"
 pyyaml = "*"
 
 [packages]
-flask = "==1.1.4"
+flask = "*"
 spacy = "==3.2.4"
-markupsafe = "==2.0.1"
 en-core-web-sm = {file = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.2.0/en_core_web_sm-3.2.0-py3-none-any.whl"}
-spacytextblob = "==4.0.0"
+spacytextblob = "*"
 
 [requires]
 python_version = "3.8"
@@ -23,5 +22,5 @@ python_version = "3.8"
 [scripts]
 python = "python"
 app = "env FLASK_ENV=production FLASK_APP=application FLASK_RUN_HOST=0.0.0.0 FLASK_RUN_PORT=8000 flask run"
-dev = "watchmedo auto-restart --recursive -p '*.py;*.yaml' -i '.serverless/*;node_modules' env FLASK_APP=application FLASK_ENV=development FLASK_RUN_PORT=8000 flask run"
+dev = "watchmedo auto-restart --recursive -p '*.py;*.yaml' env FLASK_APP=application FLASK_ENV=development FLASK_RUN_PORT=8000 flask run"
 lint = "pylint app"
