@@ -27,4 +27,3 @@ if [ ! -d $VIRTUAL_ENV/nltk_data ]; then
         mv $HOME/nltk_data $VIRTUAL_ENV/
     fi
 fi
-
