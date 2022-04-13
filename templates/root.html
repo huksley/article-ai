@@ -9,20 +9,25 @@
     <form method="POST" action="process">
 
         <div>
-            <select id="model">
-                <option value="en_core_web_sm">English, small</option>
-                <option value="en_core_web_md">English, medium</option>
-                <option value="en_core_web_lg">English, large</option>
-                <option value="en_core_web_trf">English (roberta-base)</option>
-                <option value="xx_ent_wiki_sm">Multi-language (NER)</option>
-            </select>
-        </div>
-        <div>
-            <textarea class="text" rows="20" cols="70" style="height: 450px">Supply chain disruptions — triggered by factors including demand surges, high transportation costs and pandemic-related lockdowns — are expected to continue well into next year, experts predict. Companies are experiencing the brunt of the impact, with 36% of small businesses responding to a 2021 U.S. Census survey reporting that they’ve experienced delays with domestic suppliers. This has been costly. According to a 2020 Statista survey, 41% of executives in the automotive and transportation industry alone said their company lost $50 to $100 million due to supply chain issues, a figure which has likely climbed higher since.
+            <h2>Enter article text (or use this sample)</h3>
+                <textarea class="text" rows="20" cols="70" style="height: 450px">Supply chain disruptions — triggered by factors including demand surges, high transportation costs and pandemic-related lockdowns — are expected to continue well into next year, experts predict. Companies are experiencing the brunt of the impact, with 36% of small businesses responding to a 2021 U.S. Census survey reporting that they’ve experienced delays with domestic suppliers. This has been costly. According to a 2020 Statista survey, 41% of executives in the automotive and transportation industry alone said their company lost $50 to $100 million due to supply chain issues, a figure which has likely climbed higher since.
 
 There’s no easy fix, but an emerging cohort of startups is pitching software as a way to potentially anticipate — and respond to — market shocks. One, Tive, provides supply chain visibility insights that ostensibly help companies manage their in-transit shipments’ location and condition. Tive today announced that it raised $54 million in a Series B financing round led by AXA Venture Partners with participation from Sorenson Capital, Qualcomm Ventures, Fifth Wall, SJF Ventures and Floating Point Ventures, which CEO Krenar Komoni's article attributes to the company’s growth over the past year.
 </textarea>
         </div>
+
+
+        <div>
+            <h2>Pick model</h3>
+                <select id="model">
+                    <option value="en_core_web_sm">English, small</option>
+                    <option value="en_core_web_md">English, medium</option>
+                    <option value="en_core_web_lg">English, large</option>
+                    <option value="en_core_web_trf">English (roberta-base)</option>
+                    <option value="xx_ent_wiki_sm">Multi-language (NER)</option>
+                </select>
+        </div>
+
         <button id="processButton">Process</button>
         <div id="result"></div>
     </form>
@@ -106,8 +111,18 @@ There’s no easy fix, but an emerging cohort of startups is pitching software a
                         str += "<div class=\"entities\">"
                         str += "<span class=\"entity\">" + doc.polarity + "</span>"
                         str += "</div>"
-
                     }
+
+
+                    if (doc.keywords) {
+                        str += "<h2>Keywords</h2>"
+                        str += "<div class=\"entities\">"
+                        doc.keywords.forEach(keyword => {
+                            str += "<span class=\"entity\">" + keyword + "</span> "
+                        })
+                        str += "</div>"
+                    }
+
                     str += "</div>"
                 })
                 result.innerHTML = str;

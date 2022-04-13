@@ -2,16 +2,15 @@
 
 import json
 from typing import List, Dict, Any
-import http.client
 import os
 import re
 from enum import Enum
+import logging
+from string import punctuation
 import numpy as np
 
-import logging
 from spacytextblob.spacytextblob import SpacyTextBlob
-from flask import Flask, redirect, render_template, send_from_directory, request, url_for, session, Response
-
+from flask import Flask, redirect, render_template, send_from_directory, request, Response
 
 import spacy
 from spacy.tokens import Doc
@@ -19,31 +18,17 @@ from spacy.tokens import Doc
 if not Doc.has_extension("text_id"):
     Doc.set_extension("text_id", default=None)
 
-
-def dev():
-    """Detect dev environment"""
-    return os.environ.get("AWS_EXECUTION_ENV") is None
-
-
 application = Flask(__name__)
-
 application.secret_key = os.environ['FLASK_SECRET_KEY'] if os.environ.get(
     'FLASK_SECRET_KEY') is not None else "123"
-
-if dev() and False:
-    http.client.HTTPConnection.debuglevel = 1
+application.config['TEMPLATES_AUTO_RELOAD'] = 1
+application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 logging.basicConfig(level=logging.INFO)
-if not dev():
-    logging.getLogger("werkzeug").setLevel(logging.WARN)
-
-if dev():
-    application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+logging.getLogger("werkzeug").setLevel(logging.WARN)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-application.config['TEMPLATES_AUTO_RELOAD'] = 1 if dev() else 0
 
 
 @application.route("/")
@@ -94,12 +79,19 @@ def index():
 
 
 class ModelName(str, Enum):
-    # Enum of the available models. This allows the API to raise a more specific
-    # error if an invalid model is provided.
+    """
+    Enum of the available models. This allows the API to raise a more specific
+    error if an invalid model is provided.
+    """
+    # pylint: disable=fixme, invalid-name
     en_core_web_sm = "en_core_web_sm"
+    # pylint: disable=fixme, invalid-name
     en_core_web_md = "en_core_web_md"
+    # pylint: disable=fixme, invalid-name
     en_core_web_lg = "en_core_web_lg"
+    # pylint: disable=fixme, invalid-name
     en_core_web_trf = "en_core_web_trf"
+    # pylint: disable=fixme, invalid-name
     xx_ent_wiki_sm = "xx_ent_wiki_sm"
 
 
@@ -113,18 +105,24 @@ def get_models() -> List[str]:
 
 
 def todict(obj, classkey=None, level=0):
+    """
+    Converts object to dictionary so it can be written as JSON
+    """
+    if level > 10:
+        logger.warning("todict recursion limit reached")
+        return None
     if isinstance(obj, dict):
         data = {}
         for (k, v) in obj.items():
             logger.info("Level items %s", k)
-            data[k] = todict(v, classkey)
+            data[k] = todict(v, classkey, level + 1)
         return data
     elif hasattr(obj, "_ast"):
-        return todict(obj._ast())
+        return todict(obj._ast(), None, level + 1)
     elif hasattr(obj, "__iter__"):
-        return [todict(v, classkey) for v in obj]
+        return [todict(v, classkey, level + 1) for v in obj]
     elif hasattr(obj, "__dict__"):
-        data = dict([(key, todict(value, classkey))
+        data = dict([(key, todict(value, classkey, level + 1))
                      for key, value in obj.__dict__.iteritems()
                      if not callable(value) and not key.startswith('_') and key not in ['name']])
         if classkey is not None and hasattr(obj, "__class__"):
@@ -141,9 +139,8 @@ def todict(obj, classkey=None, level=0):
         return float(obj)
     elif hasattr(obj, "__unicode__"):
         return {'type': type(obj).__name__, 'text': obj.__unicode__()}
-    else:
-        logger.info("Unknown %s", type(obj))
-        return {'type': type(obj).__name__}
+    logger.info("Unknown %s", type(obj))
+    return {'type': type(obj).__name__}
 
 
 def get_data(doc: Doc) -> Dict[str, Any]:
@@ -167,6 +164,21 @@ def get_data(doc: Doc) -> Dict[str, Any]:
         "sentiment": doc.sentiment,
         "text_id": doc._.text_id
     }
+
+
+def get_keywords(nlp, doc):
+    """
+    Very simple keyword extraction. FIXME:
+    """
+    result = []
+    pos_tag = ['PROPN', 'ADJ', 'NOUN']  # 1
+    for token in doc:
+        tt = token.text.lower()
+        if(tt in nlp.Defaults.stop_words or tt in punctuation):
+            continue
+        if token.pos_ in pos_tag:
+            result.append(token.text)
+    return list(set(result))
 
 
 class PythonObjectEncoder(json.JSONEncoder):
@@ -205,6 +217,7 @@ def process_texts(model, texts):
             doc_data["assessments"] = doc._.blob.sentiment_assessments.assessments
             doc_data["ngrams"] = doc._.blob.ngrams()
             doc_data["word_counts"] = doc._.blob.word_counts
+            doc_data["keywords"] = get_keywords(nlp, doc)
         response.append(doc_data)
         previous = doc
 
@@ -213,6 +226,9 @@ def process_texts(model, texts):
 
 @application.route("/test")
 def test():
+    """
+    Internally tests API on predefined text
+    """
     texts = [
         """
         Supply chain disruptions — triggered by factors including demand surges, high transportation costs and pandemic-related lockdowns — are expected to continue well into next year, experts predict. Companies are experiencing the brunt of the impact, with 36% of small businesses responding to a 2021 U.S. Census survey reporting that they’ve experienced delays with domestic suppliers. This has been costly. According to a 2020 Statista survey, 41% of executives in the automotive and transportation industry alone said their company lost $50 to $100 million due to supply chain issues, a figure which has likely climbed higher since.
@@ -229,7 +245,7 @@ def test():
         Tive continues to outpace and out-innovate the competition with the most advanced multi-sensor trackers, a truly intuitive SaaS application, and live 24/7 shipment monitoring service. As the leading provider of supply chain tracking technology, Tive has delivered real-time shipment visibility in more than 200 countries, and helped save thousands of shipments from being delayed, damaged, spoiled, or rejected.
         """
     ]
-    response_body = process_texts("en_core_web_sm", texts)
+    response_body = process_texts("en_core_web_md", texts)
     resp = Response(json.dumps(response_body, cls=PythonObjectEncoder))
     resp.headers['Content-Type'] = 'application/json'
     return resp
@@ -237,6 +253,9 @@ def test():
 
 @application.route("/process", methods=('POST',))
 def process():
+    """
+    Process one or more texts, generating article analytics.
+    """
     data = request.get_json()
     model = data.get("model") or "en_core_web_md"
     texts = data.get("texts") or []

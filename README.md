@@ -16,3 +16,7 @@ pipenv run dev
 - https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options-general.html
 - https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/ebextensions.html
 - https://stackoverflow.com/questions/62442212/aws-elastic-beanstalk-container-commands-failing
+
+- Spacy + TF-IDF? https://monkeylearn.com/how-it-works/
+- https://www.dataquest.io/blog/tutorial-text-classification-in-python-using-spacy/
+- https://textacy.readthedocs.io/en/latest/
