@@ -19,14 +19,18 @@ if not Doc.has_extension("text_id"):
     Doc.set_extension("text_id", default=None)
 
 application = Flask(__name__)
-application.secret_key = os.environ['FLASK_SECRET_KEY'] if os.environ.get(
-    'FLASK_SECRET_KEY') is not None else "123"
+application.secret_key = os.environ.get('FLASK_SECRET_KEY', '123')
 application.config['TEMPLATES_AUTO_RELOAD'] = 1
 application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
-logging.basicConfig(level=logging.INFO)
-logging.getLogger("werkzeug").setLevel(logging.WARN)
+if os.environ.get('FLASK_LOG_FILE_PATH') is not None:
+    logging.basicConfig(
+        filename=os.environ.get('FLASK_LOG_FILE_PATH'),
+        level=logging.INFO)
+else:
+    logging.basicConfig(level=logging.INFO)
 
+logging.getLogger("werkzeug").setLevel(logging.WARN)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
