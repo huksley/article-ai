@@ -6,3 +6,8 @@ wsgi_handler.py
 serverless_wsgi.py
 .DS_Store
 *.zip
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

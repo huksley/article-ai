@@ -6,6 +6,8 @@ import os
 import re
 from enum import Enum
 import logging
+import psutil
+import gc
 from string import punctuation
 import numpy as np
 
@@ -37,20 +39,6 @@ logger.setLevel(logging.INFO)
 
 @application.route("/")
 def root():
-    """Root page"""
-    host = request.headers['Host']
-    logger.info("Host: %s remote %s", host, request.remote_addr)
-    if re.match(r'^www\.', host):
-        return redirect("http://" + re.sub(r'^www\.', "", host), 301)
-    content = render_template("root.html")
-    webpage = render_template("index.html", content=content)
-    resp = Response(webpage)
-    resp.headers['Strict-Transport-Security'] = 'max-age=63072000'  # 2 years
-    return resp
-
-
-@application.route("/default")
-def default():
     """Root page"""
     host = request.headers['Host']
     logger.info("Host: %s remote %s", host, request.remote_addr)
@@ -252,6 +240,7 @@ def test():
     response_body = process_texts("en_core_web_md", texts)
     resp = Response(json.dumps(response_body, cls=PythonObjectEncoder))
     resp.headers['Content-Type'] = 'application/json'
+    gc.collect()
     return resp
 
 
@@ -263,6 +252,7 @@ def process():
     data = request.get_json()
     model = data.get("model") or "en_core_web_md"
     texts = data.get("texts") or []
+    logger.info("Memory usage: {}".format(psutil.virtual_memory()))
     response_body = process_texts(model, texts)
     resp = Response(json.dumps(response_body, cls=PythonObjectEncoder))
     resp.headers['Content-Type'] = 'application/json'
