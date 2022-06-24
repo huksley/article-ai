@@ -4,6 +4,7 @@ import json
 from typing import List, Dict, Any
 import os
 import re
+import time
 from enum import Enum
 import logging
 import psutil
@@ -28,13 +29,17 @@ application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 if os.environ.get('FLASK_LOG_FILE_PATH') is not None:
     logging.basicConfig(
         filename=os.environ.get('FLASK_LOG_FILE_PATH'),
+        format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s',
         level=logging.INFO)
 else:
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
 
 logging.getLogger("werkzeug").setLevel(logging.WARN)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+logger.info("SpaCy version %s", spacy.about.__version__)
 
 
 @application.route("/")
@@ -249,16 +254,19 @@ def process():
     """
     Process one or more texts, generating article analytics.
     """
+    start = time.time_ns()
     data = request.get_json()
     model = data.get("model") or "en_core_web_md"
     texts = data.get("texts") or []
-    logger.info("Memory usage: {}".format(psutil.virtual_memory()))
     response_body = process_texts(model, texts)
     resp = Response(json.dumps(response_body, cls=PythonObjectEncoder))
     resp.headers['Content-Type'] = 'application/json'
     resp.headers['Cache-Control'] = 'no-cache, no-store, max-age=0'
     resp.headers['Access-Control-Max-Age'] = '86400'
     resp.headers['Access-Control-Allow-Origin'] = '*'
+    end = time.time_ns()
+    logger.info("Processed in %i ms, memory usage: %s", (end -
+                start) / 1000000, "{}".format(psutil.virtual_memory()))
     return resp
 
 
