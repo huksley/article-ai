@@ -46,6 +46,7 @@ There’s no easy fix, but an emerging cohort of startups is pitching software a
             const activeTasks = [];
             const LOG_THRESHOLD = 100
             let queued = 0
+            let processed = 0
 
             for (const item of list) {
                 while (activeTasks.length >= concurrencyLimit) {
@@ -63,6 +64,7 @@ There’s no easy fix, but an emerging cohort of startups is pitching software a
                 })
                     .then(() => {
                         activeTasks.splice(activeTasks.indexOf(activeTask), 1);
+                        processed++;
                         logger.isVerbose && logger.verbose(`End task: ${item}`);
                     })
                     .catch((error) => {
@@ -73,8 +75,11 @@ There’s no easy fix, but an emerging cohort of startups is pitching software a
 
                 activeTasks.push(activeTask);
                 queued++
+                if (processed % LOG_THRESHOLD === 0 && processed > 0) {
+                    logger.info("Processed", processed, "items in batch, queued", queued)
+                }
                 if (queued % LOG_THRESHOLD === 0 && queued > 0) {
-                    logger.info("Processed", queued, "items in batch")
+                    logger.info("Queued", queued, "items in batch")
                 }
             }
 
