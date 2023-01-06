@@ -1,5 +1,8 @@
 # SpaCy based article analytics API
 
+- Simple API
+- Provide semantic analytics (subjectivity, polarity), keywords extraction and NER recognition.
+
 ## Install
 
 ```
