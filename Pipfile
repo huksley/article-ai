@@ -12,10 +12,11 @@ pyyaml = "*"
 
 [packages]
 flask = "*"
-spacy = ">=3.4.4"
+spacy = ">=3.4.4,<4.0.0"
 spacytextblob = "*"
 psutil = "*"
 keybert = {extras = ["spacy"], version = "*"}
+torch = "<1.13.0"
 
 [requires]
 python_version = "3.8"
