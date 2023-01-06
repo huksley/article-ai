@@ -12,7 +12,6 @@ import logging
 import psutil
 import numpy as np
 from flask import Flask, redirect, render_template, send_from_directory, request, Response
-from spacytextblob.spacytextblob import SpacyTextBlob  # pylint: disable=unused-import
 import spacy
 from spacy.tokens import Doc
 from keybert import KeyBERT
@@ -98,6 +97,11 @@ MODELS = {}
 KEYWORD_MODELS = {}
 KEYWORDS_DEFAULT = 20
 KEYWORD_MODEL_DEFAULT = "all-MiniLM-L6-v2"
+
+# Use CPU and after that initialize spacytextblob
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+spacy.require_cpu()
+from spacytextblob.spacytextblob import SpacyTextBlob  # nopep8, pylint: disable=unused-import,wrong-import-position
 
 
 @application.route("/models")
