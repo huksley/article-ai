@@ -83,13 +83,9 @@ class ModelName(str, Enum):
     """
     # pylint: disable=fixme, invalid-name
     en_core_web_sm = "en_core_web_sm"
-    # pylint: disable=fixme, invalid-name
     en_core_web_md = "en_core_web_md"
-    # pylint: disable=fixme, invalid-name
     en_core_web_lg = "en_core_web_lg"
-    # pylint: disable=fixme, invalid-name
     en_core_web_trf = "en_core_web_trf"
-    # pylint: disable=fixme, invalid-name
     xx_ent_wiki_sm = "xx_ent_wiki_sm"
 
 
@@ -98,9 +94,17 @@ KEYWORD_MODELS = {}
 KEYWORDS_DEFAULT = 20
 KEYWORD_MODEL_DEFAULT = "all-MiniLM-L6-v2"
 
-# Use CPU and after that initialize spacytextblob
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
-spacy.require_cpu()
+# if CUDA_VISIBLE_DEVICES defined and not empty, use GPU
+CUDA_VISIBLE_DEVICES = os.environ.get('CUDA_VISIBLE_DEVICES')
+if CUDA_VISIBLE_DEVICES is not None and CUDA_VISIBLE_DEVICES != "":
+    logger.info("Using GPU")
+    spacy.require_gpu()
+else:
+    logger.info("Using CPU")
+    # Use CPU and after that initialize spacytextblob
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    spacy.require_cpu()
+
 from spacytextblob.spacytextblob import SpacyTextBlob  # nopep8, pylint: disable=unused-import,wrong-import-position
 
 
@@ -201,7 +205,7 @@ def get_keywords(doc, keyword_model, top_n=KEYWORDS_DEFAULT):
                                                 stop_words=None,
                                                 top_n=top_n)
     keywords = []
-    for keyword, score in keywords_scored:
+    for keyword, score in keywords_scored:  # pylint: disable=unused-variable
         keywords.append(keyword)
     return keywords
 
