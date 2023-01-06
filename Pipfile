@@ -15,6 +15,7 @@ flask = "*"
 spacy = ">=3.4.4"
 spacytextblob = "*"
 psutil = "*"
+keybert = {extras = ["spacy"], version = "*"}
 
 [requires]
 python_version = "3.9"
@@ -23,7 +24,7 @@ python_version = "3.9"
 python = "python"
 docker = "docker-compose up"
 app = "env FLASK_APP=application FLASK_RUN_HOST=0.0.0.0 FLASK_RUN_PORT=8000 flask run"
-dev = "watchmedo auto-restart --recursive -p '*.py;*.yaml' env FLASK_APP=application FLASK_DEBUG=1 FLASK_RUN_PORT=8000 flask run"
+dev = "watchmedo auto-restart --recursive -p '*.py;*.yaml' env FLASK_APP=application FLASK_DEBUG=1 FLASK_RUN_PORT=8000 TOKENIZERS_PARALLELISM=false flask run"
 lint = "pylint application"
 download = "./download.sh"
 deploy = "eb deploy"

@@ -133,11 +133,16 @@ There’s no easy fix, but an emerging cohort of startups is pitching software a
         button.addEventListener("click", async (event) => {
             event.stopPropagation();
             event.preventDefault();
-            const texts = Array.from(document.querySelectorAll("textarea.text")).map(t => t.value)
+            // Send as objects { text, text_id } but could also be sent as array of strings
+            const texts = Array.from(document.querySelectorAll("textarea.text")).map((t, i) => ({
+                text: t.value,
+                text_id: "text" + i
+            }))
             const model = document.getElementById("model").value
             const request = {
                 model,
                 texts
+                // keywords, keyword_model
             }
             console.info("Sending", request)
             const response = await fetch("/process", {

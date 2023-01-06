@@ -9,14 +9,13 @@ import time
 import threading
 from enum import Enum
 import logging
-from string import punctuation
 import psutil
 import numpy as np
 from flask import Flask, redirect, render_template, send_from_directory, request, Response
 from spacytextblob.spacytextblob import SpacyTextBlob  # pylint: disable=unused-import
 import spacy
 from spacy.tokens import Doc
-
+from keybert import KeyBERT
 
 if not Doc.has_extension("text_id"):
     Doc.set_extension("text_id", default=None)
@@ -96,6 +95,9 @@ class ModelName(str, Enum):
 
 
 MODELS = {}
+KEYWORD_MODELS = {}
+KEYWORDS_DEFAULT = 20
+KEYWORD_MODEL_DEFAULT = "all-MiniLM-L6-v2"
 
 
 @application.route("/models")
@@ -113,9 +115,9 @@ def todict(obj, classkey=None, level=0):
         return None
     if isinstance(obj, dict):
         data = {}
-        for (k, v) in obj.items():
-            logger.info("Level items %s", k)
-            data[k] = todict(v, classkey, level + 1)
+        for (key, value) in obj.items():
+            logger.info("Level items %s", key)
+            data[key] = todict(value, classkey, level + 1)
         return data
     elif hasattr(obj, "_ast"):
         return todict(obj._ast(), None, level + 1)  # pylint: disable=protected-access
@@ -166,19 +168,38 @@ def get_data(doc: Doc) -> Dict[str, Any]:
     }
 
 
-def get_keywords(nlp, doc):
+def get_keywords(doc, keyword_model, top_n=KEYWORDS_DEFAULT):
     """
-    Very simple keyword extraction. FIXME:
+    Keyword extraction using KeyBERT with SpaCy embeddings
+
+    https://github.com/MaartenGr/KeyBERT
+    https://maartengr.github.io/KeyBERT/guides/embeddings.html#hugging-face-transformers
+    https://www.sbert.net/docs/pretrained_models.html
+    https://github.com/MartinoMensio/spacy-sentence-bert
     """
-    result = []
-    pos_tag = ['PROPN', 'ADJ', 'NOUN']  # 1
-    for token in doc:
-        tt = token.text.lower()
-        if(tt in nlp.Defaults.stop_words or tt in punctuation):
-            continue
-        if token.pos_ in pos_tag:
-            result.append(token.text)
-    return list(set(result))
+    if keyword_model is None:
+        keyword_model = KEYWORD_MODEL_DEFAULT
+
+    if keyword_model not in KEYWORD_MODELS:
+        loading.acquire()
+        start = time.time_ns()
+        logger.info("Loading keyword model %s", keyword_model)
+        KEYWORD_MODELS[keyword_model] = KeyBERT(keyword_model)
+        end = time.time_ns()
+        logger.info("Loaded keyword model %s in %s ms",
+                    keyword_model, (end - start) / 1000000)
+        loading.release()
+
+    kw_model = KEYWORD_MODELS.get(keyword_model)
+    # Generates [[keyword, score]]
+    keywords_scored = kw_model.extract_keywords(doc.text,
+                                                keyphrase_ngram_range=(1, 1),
+                                                stop_words=None,
+                                                top_n=top_n)
+    keywords = []
+    for keyword, score in keywords_scored:
+        keywords.append(keyword)
+    return keywords
 
 
 class PythonObjectEncoder(json.JSONEncoder):
@@ -196,21 +217,27 @@ def load_model(model):
     """
     Load a model or return it if it's already loaded.
     """
+
     loading.acquire()
     # Check model exists in ModelName class
     if model not in ModelName.__members__:
         raise ValueError(f"Unknown model: {model}")
 
     if MODELS.get(model) is None:
+        start = time.time_ns()
         logger.info("Loading model %s", model)
         nlp = spacy.load(model)
         nlp.add_pipe("spacytextblob")
         MODELS[model] = nlp
+        end = time.time_ns()
+        logger.info("Loaded model in %i ms", (end - start) / 1000000)
+
     loading.release()
     return MODELS[model]
 
 
-def process_texts(model, texts):
+def process_texts(texts, model, keyword_model=KEYWORD_MODEL_DEFAULT,
+                  top_n=KEYWORDS_DEFAULT, as_tuples=False):
     """
     Process a batch of articles and return the entities predicted by the
     given model.
@@ -220,23 +247,33 @@ def process_texts(model, texts):
     docs = []
     previous = None
 
-    for doc in nlp.pipe(texts):
-        docs.append(doc)
+    if as_tuples:
+        for doc, context in nlp.pipe(texts, as_tuples=True):
+            doc._.text_id = context["text_id"]
+            docs.append(doc)
+    else:
+        for doc in nlp.pipe(texts, as_tuples=False):
+            docs.append(doc)
 
     for doc in docs:
         doc_data = get_data(doc)
+        # Runtime information
+        doc_data["model"] = model
+        doc_data["spacy_version"] = spacy.__version__
+        doc_data["spacy_extensions"] = list(nlp.pipe_names)
+        doc_data["spacy_extensions"].append("keybert")
+        # Similarity to previous text
         if previous is not None:
             doc_data["similarity"] = doc.similarity(previous)
-        if doc._.blob is not None:
+        if doc.has_extension("blob") and doc._.blob is not None:
             doc_data["polarity"] = doc._.blob.polarity
             doc_data["subjectivity"] = doc._.blob.subjectivity
             doc_data["assessments"] = doc._.blob.sentiment_assessments.assessments
             doc_data["ngrams"] = doc._.blob.ngrams()
             doc_data["word_counts"] = doc._.blob.word_counts
-            doc_data["keywords"] = get_keywords(nlp, doc)
+        doc_data["keywords"] = get_keywords(doc, keyword_model, top_n)
         response.append(doc_data)
         previous = doc
-
     return response
 
 
@@ -292,7 +329,7 @@ def test():
         of shipments from being delayed, damaged, spoiled, or rejected.
         """
     ]
-    response_body = process_texts("en_core_web_md", texts)
+    response_body = process_texts(texts, "en_core_web_md")
     resp = Response(json.dumps(response_body, cls=PythonObjectEncoder))
     resp.headers['Content-Type'] = 'application/json'
     gc.collect()
@@ -305,10 +342,20 @@ def process():
     Process one or more texts, generating article analytics.
     """
     start = time.time_ns()
-    data = request.get_json()
-    model = data.get("model") or "en_core_web_md"
-    texts = data.get("texts") or []
-    response_body = process_texts(model, texts)
+    params = request.get_json()
+    model = params.get("model") or "en_core_web_md"
+    keyword_model = params.get("keyword_model") or KEYWORD_MODEL_DEFAULT
+    keywords = params.get("keywords") or KEYWORDS_DEFAULT
+    texts = params.get("texts") or []
+
+    # Convert to tuples if necessary
+    as_tuples = False
+    if isinstance(texts[0], dict):
+        as_tuples = True
+        texts = [(text["text"], {"text_id": text["text_id"]})
+                 for text in texts]
+    response_body = process_texts(
+        texts, model, keyword_model, keywords, as_tuples)
     resp = Response(json.dumps(response_body, cls=PythonObjectEncoder))
     resp.headers['Content-Type'] = 'application/json'
     resp.headers['Cache-Control'] = 'no-cache, no-store, max-age=0'
