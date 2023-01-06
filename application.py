@@ -1,22 +1,22 @@
 """Article AI"""
 
+import gc
 import json
 from typing import List, Dict, Any
 import os
 import re
 import time
+import threading
 from enum import Enum
 import logging
-import psutil
-import gc
 from string import punctuation
+import psutil
 import numpy as np
-
-from spacytextblob.spacytextblob import SpacyTextBlob
 from flask import Flask, redirect, render_template, send_from_directory, request, Response
-
+from spacytextblob.spacytextblob import SpacyTextBlob  # pylint: disable=unused-import
 import spacy
 from spacy.tokens import Doc
+
 
 if not Doc.has_extension("text_id"):
     Doc.set_extension("text_id", default=None)
@@ -33,13 +33,16 @@ if os.environ.get('FLASK_LOG_FILE_PATH') is not None:
         level=logging.INFO)
 else:
     logging.basicConfig(
-        level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
+        level=logging.INFO,
+        format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
 
 logging.getLogger("werkzeug").setLevel(logging.WARN)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 logger.info("SpaCy version %s", spacy.about.__version__)
+
+loading = threading.Semaphore()
 
 
 @application.route("/")
@@ -115,7 +118,7 @@ def todict(obj, classkey=None, level=0):
             data[k] = todict(v, classkey, level + 1)
         return data
     elif hasattr(obj, "_ast"):
-        return todict(obj._ast(), None, level + 1)
+        return todict(obj._ast(), None, level + 1)  # pylint: disable=protected-access
     elif hasattr(obj, "__iter__"):
         return [todict(v, classkey, level + 1) for v in obj]
     elif hasattr(obj, "__dict__"):
@@ -179,10 +182,32 @@ def get_keywords(nlp, doc):
 
 
 class PythonObjectEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, (list, dict, str, int, float, bool, type(None))):
-            return json.JSONEncoder.default(self, obj)
-        return todict(obj)
+    """
+    JSON encoder for Python objects
+    """
+
+    def default(self, o):
+        if isinstance(o, (list, dict, str, int, float, bool, type(None))):
+            return json.JSONEncoder.default(self, o)
+        return todict(o)
+
+
+def load_model(model):
+    """
+    Load a model or return it if it's already loaded.
+    """
+    loading.acquire()
+    # Check model exists in ModelName class
+    if model not in ModelName.__members__:
+        raise ValueError(f"Unknown model: {model}")
+
+    if MODELS.get(model) is None:
+        logger.info("Loading model %s", model)
+        nlp = spacy.load(model)
+        nlp.add_pipe("spacytextblob")
+        MODELS[model] = nlp
+    loading.release()
+    return MODELS[model]
 
 
 def process_texts(model, texts):
@@ -190,13 +215,7 @@ def process_texts(model, texts):
     Process a batch of articles and return the entities predicted by the
     given model.
     """
-    if MODELS.get(model) is None:
-        logger.info("Loading model %s", model)
-        nlp = spacy.load(model)
-        nlp.add_pipe("spacytextblob")
-        MODELS[model] = nlp
-
-    nlp = MODELS[model]
+    nlp = load_model(model)
     response = []
     docs = []
     previous = None
@@ -228,18 +247,49 @@ def test():
     """
     texts = [
         """
-        Supply chain disruptions — triggered by factors including demand surges, high transportation costs and pandemic-related lockdowns — are expected to continue well into next year, experts predict. Companies are experiencing the brunt of the impact, with 36% of small businesses responding to a 2021 U.S. Census survey reporting that they’ve experienced delays with domestic suppliers. This has been costly. According to a 2020 Statista survey, 41% of executives in the automotive and transportation industry alone said their company lost $50 to $100 million due to supply chain issues, a figure which has likely climbed higher since.
+        Supply chain disruptions — triggered by factors including demand surges,
+        high transportation costs and pandemic-related lockdowns — are expected to
+        continue well into next year, experts predict. Companies are experiencing
+        the brunt of the impact, with 36% of small businesses responding to a 2021
+        U.S. Census survey reporting that they’ve experienced delays with domestic
+        suppliers. This has been costly. According to a 2020 Statista survey, 41% of
+        executives in the automotive and transportation industry alone said their
+        company lost $50 to $100 million due to supply chain issues, a figure which
+        has likely climbed higher since.
 
-        There’s no easy fix, but an emerging cohort of startups is pitching software as a way to potentially anticipate — and respond to — market shocks. One, Tive, provides supply chain visibility insights that ostensibly help companies manage their in-transit shipments’ location and condition. Tive today announced that it raised $54 million in a Series B financing round led by AXA Venture Partners with participation from Sorenson Capital, Qualcomm Ventures, Fifth Wall, SJF Ventures and Floating Point Ventures, which CEO Krenar Komoni's article attributes to the company’s growth over the past year.
+        There’s no easy fix, but an emerging cohort of startups is pitching software
+        as a way to potentially anticipate — and respond to — market shocks.
+        One, Tive, provides supply chain visibility insights that ostensibly help
+        companies manage their in-transit shipments’ location and condition.
+        Tive today announced that it raised $54 million in a Series B financing
+        round led by AXA Venture Partners with participation from Sorenson Capital,
+        Qualcomm Ventures, Fifth Wall, SJF Ventures and Floating Point Ventures,
+        which CEO Krenar Komoni's article attributes to the company’s growth over
+        the past year.
         """,
         """
-        April 11, 2022 –Tive, the technology leader in the new era of supply chain and logistics visibility, today announced the closing of a $54M Series B funding led by AXA Venture Partners, with participation from Sorenson Capital, Qualcomm Ventures, Fifth Wall, SJF Ventures and Floating Point Ventures as well as the existing investors RRE Ventures, Two Sigma Ventures, NextView Ventures, Hyperplane Ventures, Broom Ventures, and Supply Chain Ventures.
+        April 11, 2022 –Tive, the technology leader in the new era of supply chain
+        and logistics visibility, today announced the closing of a $54M Series B
+        funding led by AXA Venture Partners, with participation from Sorenson Capital,
+        Qualcomm Ventures, Fifth Wall, SJF Ventures and Floating Point Ventures as well
+        as the existing investors RRE Ventures, Two Sigma Ventures, NextView Ventures,
+        Hyperplane Ventures, Broom Ventures, and Supply Chain Ventures.
 
-        In 2021, Tive grew its revenue by over 300%, acquired more than 200 new customers and expanded its global footprint. This latest investment will fuel Tive's rapidly growing international presence, with the expansion of global sales and marketing initiatives. In addition, it will accelerate the development and introduction of next-generation solutions, services and bring actionable supply chain intelligence and 24/7 monitoring to the market.
+        In 2021, Tive grew its revenue by over 300%, acquired more than 200 new
+        customers and expanded its global footprint. This latest investment will fuel
+        Tive's rapidly growing international presence, with the expansion of global
+        sales and marketing initiatives. In addition, it will accelerate the development
+        and introduction of next-generation solutions, services and bring actionable
+        supply chain intelligence and 24/7 monitoring to the market.
 
         #1 in Supply Chain and Logistics Condition and Location Monitoring
 
-        Tive continues to outpace and out-innovate the competition with the most advanced multi-sensor trackers, a truly intuitive SaaS application, and live 24/7 shipment monitoring service. As the leading provider of supply chain tracking technology, Tive has delivered real-time shipment visibility in more than 200 countries, and helped save thousands of shipments from being delayed, damaged, spoiled, or rejected.
+        Tive continues to outpace and out-innovate the competition with the
+        most advanced multi-sensor trackers, a truly intuitive SaaS application,
+        and live 24/7 shipment monitoring service. As the leading provider
+        of supply chain tracking technology, Tive has delivered real-time
+        shipment visibility in more than 200 countries, and helped save thousands
+        of shipments from being delayed, damaged, spoiled, or rejected.
         """
     ]
     response_body = process_texts("en_core_web_md", texts)
@@ -266,7 +316,7 @@ def process():
     resp.headers['Access-Control-Allow-Origin'] = '*'
     end = time.time_ns()
     logger.info("Processed in %i ms, memory usage: %s", (end -
-                start) / 1000000, "{}".format(psutil.virtual_memory()))
+                start) / 1000000, f"{psutil.virtual_memory()}")
     return resp
 
 

@@ -1,10 +1,15 @@
-version: "3.8"
+version: "2.4"
 services:
   app:
     build: .
-    image: article-ai-dev
+    image: article-ai
+    container_name: article-ai
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-s", "-f", "-i", "http://localhost:8000/"]
     ports:
       - "8000:8000"
+    cpu_count: 2
+    cpu_percent: 80
+    mem_limit: 4g
+    memswap_limit: 4g

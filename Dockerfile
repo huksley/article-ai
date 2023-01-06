@@ -4,7 +4,7 @@ ENV PYTHONUNBUFFERED 1
 ENV DEBIAN_FRONTEND 'noninteractive'
 ENV CI true
 ENV FLASK_RUN_HOST 0.0.0.0
-ENV FLASK_ENV production 
+ENV FLASK_DEBUG 0
 
 RUN apt-get update && \
     apt-get install -y curl && \

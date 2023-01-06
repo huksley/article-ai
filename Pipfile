@@ -12,18 +12,18 @@ pyyaml = "*"
 
 [packages]
 flask = "*"
-spacy = ">=3.3.0"
+spacy = ">=3.4.4"
 spacytextblob = "*"
 psutil = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.9"
 
 [scripts]
 python = "python"
-app = "env FLASK_ENV=production FLASK_APP=application FLASK_RUN_HOST=0.0.0.0 FLASK_RUN_PORT=8000 flask run"
-dev = "watchmedo auto-restart --recursive -p '*.py;*.yaml' env FLASK_APP=application FLASK_ENV=development FLASK_RUN_PORT=8000 flask run"
+docker = "docker-compose up"
+app = "env FLASK_APP=application FLASK_RUN_HOST=0.0.0.0 FLASK_RUN_PORT=8000 flask run"
+dev = "watchmedo auto-restart --recursive -p '*.py;*.yaml' env FLASK_APP=application FLASK_DEBUG=1 FLASK_RUN_PORT=8000 flask run"
 lint = "pylint application"
 download = "./download.sh"
 deploy = "eb deploy"
-

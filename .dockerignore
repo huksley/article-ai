@@ -2,3 +2,8 @@
 node_modules
 .git
 .vscode
+has_extension
+.elasticbeanstalk
+.platform
+.ebextensions
+*.zip
