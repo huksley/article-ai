@@ -46,3 +46,8 @@ span.entity {
 ul {
   width: 600px;
 }
+
+dd {
+  margin-left: 0em;
+  margin-top: 1em;
+}

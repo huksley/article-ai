@@ -9,13 +9,13 @@ import time
 import threading
 from enum import Enum
 import logging
+import warnings
 import psutil
 import numpy as np
 from flask import Flask, redirect, render_template, send_from_directory, request, Response
 import spacy
 from spacy.tokens import Doc
 from keybert import KeyBERT
-import warnings
 
 if not Doc.has_extension("text_id"):
     Doc.set_extension("text_id", default=None)
@@ -88,6 +88,10 @@ class ModelName(str, Enum):
     en_core_web_lg = "en_core_web_lg"
     en_core_web_trf = "en_core_web_trf"
     xx_ent_wiki_sm = "xx_ent_wiki_sm"
+    fi_core_news_sm = "fi_core_news_sm"
+    fi_core_news_lg = "fi_core_news_lg"
+    sv_core_news_sm = "sv_core_news_sm"
+    sv_core_news_lg = "sv_core_news_lg"
 
 
 MODELS = {}
@@ -164,9 +168,9 @@ def get_data(doc: Doc) -> Dict[str, Any]:
     this function to include other data.
     See more here: https://spacy.io/usage/linguistic-features
     """
-    ents = []
+    entities = []
     for ent in doc.ents:
-        ents.append(
+        entities.append(
             {
                 "text": ent.text,
                 "label": ent.label_,
@@ -175,13 +179,12 @@ def get_data(doc: Doc) -> Dict[str, Any]:
             })
     return {
         "text": doc.text,
-        "ents": ents,
-        "sentiment": doc.sentiment,
+        "entities": entities,
         "text_id": doc._.text_id
     }
 
 
-def get_keywords(doc, keyword_model, top_n=KEYWORDS_DEFAULT):
+def get_keywords(doc, keyword_model, top_n=KEYWORDS_DEFAULT, lang: str = "en"):
     """
     Keyword extraction using KeyBERT with SpaCy embeddings
 
@@ -226,7 +229,7 @@ class PythonObjectEncoder(json.JSONEncoder):
         return todict(o)
 
 
-def load_model(model):
+def load_model(model: str, language="en"):
     """
     Load a model or return it if it's already loaded.
     """
@@ -235,6 +238,9 @@ def load_model(model):
     # Check model exists in ModelName class
     if model not in ModelName.__members__:
         raise ValueError(f"Unknown model: {model}")
+
+    if language is None:
+        language = "en"
 
     if MODELS.get(model) is None:
         start = time.time_ns()
@@ -250,37 +256,45 @@ def load_model(model):
 
 
 def process_texts(texts, model, keyword_model=KEYWORD_MODEL_DEFAULT,
-                  top_n=KEYWORDS_DEFAULT, as_tuples=False):
+                  top_n=KEYWORDS_DEFAULT, lang="en", as_tuples=False):
     """
     Process a batch of articles and return the entities predicted by the
     given model.
     """
-    nlp = load_model(model)
+    nlp: spacy.language.Language = load_model(model, lang)
     response = []
     docs = []
     previous = None
 
     start = time.time_ns()
+    ids = []
+    disable = []
+
+    # spacytextblob suppots only English
+    if lang != "en":
+        disable.append("spacytextblob")
 
     if as_tuples:
-        for doc, context in nlp.pipe(texts, as_tuples=True):
+        for doc, context in nlp.pipe(texts, as_tuples=True, disable=disable):
             doc._.text_id = context["text_id"]
+            ids.append(context["text_id"])
             docs.append(doc)
     else:
-        for doc in nlp.pipe(texts, as_tuples=False):
+        for doc in nlp.pipe(texts, as_tuples=False, disable=disable):
             docs.append(doc)
 
     end = time.time_ns()
-    logger.info("Done analytics for %s texts in %s ms",
-                len(texts), (end - start) / 1000000)
+    logger.info("Done analytics for %s texts (%s) in %s ms",
+                len(texts), ids, (end - start) / 1000000)
 
     for doc in docs:
         doc_data = get_data(doc)
         # Runtime information
         doc_data["model"] = model
+        doc_data["language"] = lang
         doc_data["spacy_version"] = spacy.__version__
-        doc_data["spacy_extensions"] = list(nlp.pipe_names)
-        doc_data["spacy_extensions"].append("keybert")
+        doc_data["spacy_extensions"] = [
+            s for s in list(nlp.pipe_names) if s not in disable]
         # Similarity to previous text
         if previous is not None:
             doc_data["similarity"] = doc.similarity(previous)
@@ -291,7 +305,8 @@ def process_texts(texts, model, keyword_model=KEYWORD_MODEL_DEFAULT,
             doc_data["ngrams"] = doc._.blob.ngrams()
             doc_data["word_counts"] = doc._.blob.word_counts
         start = time.time_ns()
-        doc_data["keywords"] = get_keywords(doc, keyword_model, top_n)
+        doc_data["keywords"] = get_keywords(doc, keyword_model, top_n, lang)
+        doc_data["spacy_extensions"].append("keybert")
         end = time.time_ns()
         logger.info("Done keyword extraction for text %s in %s ms",
                     doc._.text_id, (end - start) / 1000000)
@@ -342,7 +357,7 @@ def test():
         and introduction of next-generation solutions, services and bring actionable
         supply chain intelligence and 24/7 monitoring to the market.
 
-        #1 in Supply Chain and Logistics Condition and Location Monitoring
+        # 1 in Supply Chain and Logistics Condition and Location Monitoring
 
         Tive continues to outpace and out-innovate the competition with the
         most advanced multi-sensor trackers, a truly intuitive SaaS application,
@@ -367,9 +382,16 @@ def process():
     start = time.time_ns()
     params = request.get_json()
     model = params.get("model") or "en_core_web_md"
-    keyword_model = params.get("keyword_model") or KEYWORD_MODEL_DEFAULT
+    keyword_model = params.get("keyword_model")
     keywords = params.get("keywords") or KEYWORDS_DEFAULT
     texts = params.get("texts") or []
+    lang = params.get("language") or "en"
+    if keyword_model is None and lang != "en":
+        keyword_model = "paraphrase-multilingual-MiniLM-L12-v2"
+    if keyword_model is None:
+        keyword_model = KEYWORD_MODEL_DEFAULT
+
+    logger.info("Processing %s texts with model %s", len(texts), model)
 
     # Convert to tuples if necessary
     as_tuples = False
@@ -377,8 +399,14 @@ def process():
         as_tuples = True
         texts = [(text["text"], {"text_id": text["text_id"]})
                  for text in texts]
-    response_body = process_texts(
-        texts, model, keyword_model, keywords, as_tuples)
+
+    try:
+        response_body = process_texts(
+            texts, model, keyword_model, keywords, lang, as_tuples)
+    except Exception as err:  # pylint: disable=broad-except
+        logger.error("Error processing: %s", err)
+        response_body = {"error": str(err)}
+
     resp = Response(json.dumps(response_body, cls=PythonObjectEncoder))
     resp.headers['Content-Type'] = 'application/json'
     resp.headers['Cache-Control'] = 'no-cache, no-store, max-age=0'

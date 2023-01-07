@@ -3,25 +3,17 @@
 SPACY_VERSION=`python -c "import spacy; print('.'.join(spacy.about.__version__.split('.')[0:2]))"`
 echo "Downloading SpaCy packages $SPACY_VERSION"
 
-if [ ! -d $VIRTUAL_ENV/lib/python3.8/site-packages/en_core_web_sm/en_core_web_sm-$SPACY_VERSION* ]; then
-    python -m spacy download en_core_web_sm
-fi
+MODELS="en_core_web_sm en_core_web_md en_core_web_lg en_core_web_trf xx_ent_wiki_sm fi_core_news_sm fi_core_news_lg sv_core_news_sm sv_core_news_lg" 
 
-if [ ! -d $VIRTUAL_ENV/lib/python3.8/site-packages/en_core_web_lg/en_core_web_lg-$SPACY_VERSION* ]; then
-    python -m spacy download en_core_web_md
-fi
-
-if [ ! -d $VIRTUAL_ENV/lib/python3.8/site-packages/en_core_web_lg/en_core_web_lg-$SPACY_VERSION* ]; then
-    python -m spacy download en_core_web_lg
-fi
-
-if [ ! -d $VIRTUAL_ENV/lib/python3.8/site-packages/en_core_web_trf/en_core_web_trf-$SPACY_VERSION* ]; then
-    python -m spacy download en_core_web_trf
-fi
-
-if [ ! -d $VIRTUAL_ENV/lib/python3.8/site-packages/xx_ent_wiki_sm/xx_ent_wiki_sm-$SPACY_VERSION* ]; then
-    python -m spacy download xx_ent_wiki_sm
-fi
+for N in $MODELS; do
+    if [ ! -d $VIRTUAL_ENV/lib/python3.8/site-packages/$N/${N}-$SPACY_VERSION* ]; then
+        echo "Downloading $N"
+        python -m spacy download $N
+    else
+        NAME=$(basename $VIRTUAL_ENV/lib/python3.8/site-packages/$N/${N}-$SPACY_VERSION*)
+        echo "Exists $NAME"
+    fi
+done
 
 if [ ! -d $VIRTUAL_ENV/nltk_data ]; then
     python -m textblob.download_corpora
