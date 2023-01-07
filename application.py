@@ -15,6 +15,7 @@ from flask import Flask, redirect, render_template, send_from_directory, request
 import spacy
 from spacy.tokens import Doc
 from keybert import KeyBERT
+import warnings
 
 if not Doc.has_extension("text_id"):
     Doc.set_extension("text_id", default=None)
@@ -104,6 +105,10 @@ else:
     # Use CPU and after that initialize spacytextblob
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
     spacy.require_cpu()
+
+# You gotta be kidding me https://github.com/ultralytics/yolov5/issues/6692
+warnings.filterwarnings(
+    'ignore', message='User provided device_type of \'cuda\', but CUDA is not available. Disabling')
 
 from spacytextblob.spacytextblob import SpacyTextBlob  # nopep8, pylint: disable=unused-import,wrong-import-position
 
@@ -255,6 +260,8 @@ def process_texts(texts, model, keyword_model=KEYWORD_MODEL_DEFAULT,
     docs = []
     previous = None
 
+    start = time.time_ns()
+
     if as_tuples:
         for doc, context in nlp.pipe(texts, as_tuples=True):
             doc._.text_id = context["text_id"]
@@ -262,6 +269,10 @@ def process_texts(texts, model, keyword_model=KEYWORD_MODEL_DEFAULT,
     else:
         for doc in nlp.pipe(texts, as_tuples=False):
             docs.append(doc)
+
+    end = time.time_ns()
+    logger.info("Done analytics for %s texts in %s ms",
+                len(texts), (end - start) / 1000000)
 
     for doc in docs:
         doc_data = get_data(doc)
@@ -279,7 +290,11 @@ def process_texts(texts, model, keyword_model=KEYWORD_MODEL_DEFAULT,
             doc_data["assessments"] = doc._.blob.sentiment_assessments.assessments
             doc_data["ngrams"] = doc._.blob.ngrams()
             doc_data["word_counts"] = doc._.blob.word_counts
+        start = time.time_ns()
         doc_data["keywords"] = get_keywords(doc, keyword_model, top_n)
+        end = time.time_ns()
+        logger.info("Done keyword extraction for text %s in %s ms",
+                    doc._.text_id, (end - start) / 1000000)
         response.append(doc_data)
         previous = doc
     return response
