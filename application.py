@@ -284,8 +284,7 @@ def process_texts(texts, model, keyword_model=KEYWORD_MODEL_DEFAULT,
             docs.append(doc)
 
     end = time.time_ns()
-    logger.info("Done analytics for %s texts (%s) in %s ms",
-                len(texts), ids, (end - start) / 1000000)
+    logger.info("Done analytics for %s in %s ms", ids, (end - start) / 1000000)
 
     for doc in docs:
         doc_data = get_data(doc)
@@ -308,7 +307,7 @@ def process_texts(texts, model, keyword_model=KEYWORD_MODEL_DEFAULT,
         doc_data["keywords"] = get_keywords(doc, keyword_model, top_n, lang)
         doc_data["spacy_extensions"].append("keybert")
         end = time.time_ns()
-        logger.info("Done keyword extraction for text %s in %s ms",
+        logger.info("Done keyword extraction for %s in %s ms",
                     doc._.text_id, (end - start) / 1000000)
         response.append(doc_data)
         previous = doc
@@ -385,26 +384,30 @@ def process():
     keyword_model = params.get("keyword_model")
     keywords = params.get("keywords") or KEYWORDS_DEFAULT
     texts = params.get("texts") or []
+    ids = []
     lang = params.get("language") or "en"
     if keyword_model is None and lang != "en":
         keyword_model = "paraphrase-multilingual-MiniLM-L12-v2"
     if keyword_model is None:
         keyword_model = KEYWORD_MODEL_DEFAULT
 
-    logger.info("Processing %s texts with model %s", len(texts), model)
-
     # Convert to tuples if necessary
     as_tuples = False
     if isinstance(texts[0], dict):
         as_tuples = True
+        ids = [text["text_id"] for text in texts]
         texts = [(text["text"], {"text_id": text["text_id"]})
                  for text in texts]
+    else:
+        ids = [str(i) for i in range(len(texts))]
+
+    logger.info("Processing texts (%s) with model %s", ids, model)
 
     try:
         response_body = process_texts(
             texts, model, keyword_model, keywords, lang, as_tuples)
     except Exception as err:  # pylint: disable=broad-except
-        logger.error("Error processing: %s", err)
+        logger.error("Error processing %s: %s", ids, err, exc_info=True)
         response_body = {"error": str(err)}
 
     resp = Response(json.dumps(response_body, cls=PythonObjectEncoder))
@@ -413,7 +416,7 @@ def process():
     resp.headers['Access-Control-Max-Age'] = '86400'
     resp.headers['Access-Control-Allow-Origin'] = '*'
     end = time.time_ns()
-    logger.info("Processed in %i ms, memory usage: %s", (end -
+    logger.info("Processed %s in %i ms, memory usage: %s", ids, (end -
                 start) / 1000000, f"{psutil.virtual_memory()}")
     return resp
 
