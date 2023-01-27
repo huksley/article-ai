@@ -17,6 +17,8 @@ spacytextblob = "*"
 psutil = "*"
 keybert = {extras = ["spacy"], version = "*"}
 torch = "<1.13.0"
+flask-limiter = "*"
+werkzeug = "*"
 
 [requires]
 python_version = "3.8"

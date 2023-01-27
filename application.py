@@ -14,17 +14,33 @@ import warnings
 import psutil
 import numpy as np
 from flask import Flask, redirect, render_template, send_from_directory, request, Response
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import spacy
 from spacy.tokens import Doc
 from keybert import KeyBERT
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 if not Doc.has_extension("text_id"):
     Doc.set_extension("text_id", default=None)
 
+
+DEFAULT_LIMIT = "100/second"
+if os.environ.get('FLASK_LIMIT_DEFAULT') is not None:
+    DEFAULT_LIMIT = os.environ.get('FLASK_LIMIT_DEFAULT')
+
+PROCESS_LIMIT = "10/second"
+if os.environ.get('FLASK_LIMIT_PROCESS') is not None:
+    PROCESS_LIMIT = os.environ.get('FLASK_LIMIT_PROCESS')
+
 application = Flask(__name__)
+application.wsgi_app = ProxyFix(application.wsgi_app, x_for=1)
 application.secret_key = os.environ.get('FLASK_SECRET_KEY', '123')
 application.config['TEMPLATES_AUTO_RELOAD'] = 1
 application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+limiter = Limiter(key_func=get_remote_address, app=application,
+                  default_limits=[DEFAULT_LIMIT],
+                  storage_uri="memory://")
 
 if os.environ.get('FLASK_LOG_FILE_PATH') is not None:
     logging.basicConfig(
@@ -48,7 +64,6 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 logger.info("SpaCy version %s", spacy.about.__version__)
-
 loading = threading.Semaphore()
 
 
@@ -382,7 +397,41 @@ def test():
     return resp
 
 
+@application.errorhandler(429)
+def ratelimit_handler(err):
+    """
+    Log 429 and send JSON response
+    """
+    logger.warning("Rate limit exceeded: %s", err.description)
+    print(f"Rate limit exceeded: {err.description}")
+    resp = Response(json.dumps({
+        'error': 'ratelimit exceeded',
+        'description': err.description
+    }, cls=PythonObjectEncoder))
+    resp.status_code = 429
+    resp.headers['Content-Type'] = 'application/json'
+    resp.headers['Cache-Control'] = 'no-cache, no-store, max-age=0'
+    resp.headers['Access-Control-Max-Age'] = '86400'
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
+
+
+@application.after_request
+def add_headers(response):
+    """
+    Add limiter headers to response
+    """
+    if limiter.current_limit:
+        response.headers["RemainingLimit"] = limiter.current_limit.remaining
+        response.headers["ResetAt"] = limiter.current_limit.reset_at
+        response.headers["MaxRequests"] = limiter.current_limit.limit.amount
+        response.headers["WindowSize"] = limiter.current_limit.limit.get_expiry()
+        response.headers["Breached"] = limiter.current_limit.breached
+    return response
+
+
 @application.route("/process", methods=('POST',))
+@limiter.limit(PROCESS_LIMIT)
 def process():
     """
     Process one or more texts, generating article analytics.
