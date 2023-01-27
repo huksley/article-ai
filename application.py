@@ -235,6 +235,7 @@ def load_model(model: str, language="en"):
     """
 
     loading.acquire()
+    
     # Check model exists in ModelName class
     if model not in ModelName.__members__:
         raise ValueError(f"Unknown model: {model}")
