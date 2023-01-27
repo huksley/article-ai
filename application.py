@@ -33,14 +33,24 @@ PROCESS_LIMIT = "10/second"
 if os.environ.get('FLASK_LIMIT_PROCESS') is not None:
     PROCESS_LIMIT = os.environ.get('FLASK_LIMIT_PROCESS')
 
+LIMITER_STORAGE = "memory://"
+if os.environ.get('FLASK_LIMITER_STORAGE') is not None:
+    LIMITER_STORAGE = os.environ.get('FLASK_LIMITER_STORAGE')
+
+
+def limiter_key():
+    """Limiter key function"""
+    return get_remote_address() + request.path
+
+
 application = Flask(__name__)
-application.wsgi_app = ProxyFix(application.wsgi_app, x_for=1)
+application.wsgi_app = ProxyFix(application.wsgi_app, x_for=1, x_host=1)
 application.secret_key = os.environ.get('FLASK_SECRET_KEY', '123')
 application.config['TEMPLATES_AUTO_RELOAD'] = 1
 application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-limiter = Limiter(key_func=get_remote_address, app=application,
+limiter = Limiter(key_func=limiter_key, app=application,
                   default_limits=[DEFAULT_LIMIT],
-                  storage_uri="memory://")
+                  storage_uri=LIMITER_STORAGE)
 
 if os.environ.get('FLASK_LOG_FILE_PATH') is not None:
     logging.basicConfig(
@@ -62,7 +72,8 @@ else:
 logging.getLogger("werkzeug").setLevel(logging.WARN)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
+logger.info("Configured flask limiter with default limit %s, process limit %s, storage %s",
+            DEFAULT_LIMIT, PROCESS_LIMIT, LIMITER_STORAGE)
 logger.info("SpaCy version %s", spacy.about.__version__)
 loading = threading.Semaphore()
 
@@ -402,8 +413,8 @@ def ratelimit_handler(err):
     """
     Log 429 and send JSON response
     """
-    logger.warning("Rate limit exceeded: %s", err.description)
-    print(f"Rate limit exceeded: {err.description}")
+    logger.warning("Rate limit exceeded: %s, remote addr %s",
+                   err.description, get_remote_address())
     resp = Response(json.dumps({
         'error': 'ratelimit exceeded',
         'description': err.description
@@ -459,7 +470,10 @@ def process():
     else:
         ids = [str(i) for i in range(len(texts))]
 
-    logger.info("Processing texts (%s) with model %s", ids, model)
+    logger.info("Processing texts (%s) with model %s limit remaining %s max %s",
+                ids, model,
+                limiter.current_limit.remaining,
+                limiter.current_limit.limit.amount)
 
     try:
         response_body = process_texts(
@@ -484,3 +498,10 @@ if __name__ == "__main__":
     # removed before deploying a production app.
     application.debug = True
     application.run()
+
+
+def post_worker_init(worker):
+    """
+    Invoked when guicorn worker is initialized
+    """
+    print(f"Post worker init {worker.pid}")

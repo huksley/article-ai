@@ -19,6 +19,8 @@ keybert = {extras = ["spacy"], version = "*"}
 torch = "<1.13.0"
 flask-limiter = "*"
 werkzeug = "*"
+gunicorn = "*"
+redis = "*"
 
 [requires]
 python_version = "3.8"
@@ -26,7 +28,7 @@ python_version = "3.8"
 [scripts]
 python = "python"
 docker = "docker-compose up"
-app = "env FLASK_APP=application FLASK_RUN_HOST=0.0.0.0 FLASK_RUN_PORT=8000 flask run"
+app = "env gunicorn -b 0.0.0.0:8000 -w 1 --threads 15 application"
 dev = "watchmedo auto-restart --recursive -p '*.py;*.yaml' env FLASK_APP=application FLASK_DEBUG=1 FLASK_RUN_PORT=8000 TOKENIZERS_PARALLELISM=false flask run"
 lint = "pylint application"
 download = "./download.sh"
