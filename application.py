@@ -9,6 +9,7 @@ import time
 import threading
 from enum import Enum
 import logging
+from logging.handlers import RotatingFileHandler
 import warnings
 import psutil
 import numpy as np
@@ -27,7 +28,14 @@ application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 if os.environ.get('FLASK_LOG_FILE_PATH') is not None:
     logging.basicConfig(
-        filename=os.environ.get('FLASK_LOG_FILE_PATH'),
+        force=True,
+        handlers=[
+            RotatingFileHandler(
+                filename=os.environ.get('FLASK_LOG_FILE_PATH'),
+                maxBytes=1024 * 1024 * 10,
+                backupCount=10,
+            ),
+        ],
         format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s',
         level=logging.INFO)
 else:
@@ -235,7 +243,7 @@ def load_model(model: str, language="en"):
     """
 
     loading.acquire()
-    
+
     # Check model exists in ModelName class
     if model not in ModelName.__members__:
         raise ValueError(f"Unknown model: {model}")
