@@ -18,6 +18,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import spacy
 from spacy.tokens import Doc
+import torch
 from keybert import KeyBERT
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -143,6 +144,10 @@ else:
     # Use CPU and after that initialize spacytextblob
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
     spacy.require_cpu()
+
+# https://github.com/explosion/spaCy/discussions/10621
+torch.set_num_threads(1)  # nopep8, pylint: disable=no-member
+
 
 # You gotta be kidding me https://github.com/ultralytics/yolov5/issues/6692
 warnings.filterwarnings(
