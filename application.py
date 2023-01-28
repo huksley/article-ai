@@ -498,10 +498,3 @@ if __name__ == "__main__":
     # removed before deploying a production app.
     application.debug = True
     application.run()
-
-
-def post_worker_init(worker):
-    """
-    Invoked when guicorn worker is initialized
-    """
-    print(f"Post worker init {worker.pid}")
