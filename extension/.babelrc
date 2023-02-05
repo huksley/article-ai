@@ -1,0 +1,11 @@
+{
+  // Only used when compiling extension or functions
+  "presets": ["@babel/env", "@babel/preset-typescript", "@babel/preset-react"],
+  "plugins": [
+    // Supress storybook warnings, but may also affect how NextJS generates code
+    ["@babel/plugin-proposal-class-properties", { "loose": true }],
+    ["@babel/plugin-proposal-private-methods", { "loose": true }],
+    ["@babel/plugin-proposal-private-property-in-object", { "loose": true }],
+    ["@babel/transform-runtime", { "useESModules": false }]
+  ]
+}
