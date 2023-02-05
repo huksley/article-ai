@@ -1,0 +1,44 @@
+{
+  "manifest_version": 2,
+  "name": "Article AI  Extension",
+  "short_name": "article-ai-extension",
+  "version": "$VERSION.$BUILD_NUMBER",
+  "author": "Ruslan Gainutdinov <ruslan@sanfrancisco.fi>",
+  "description": "Easily check article",
+  "homepage_url": "https://github.com/huksley/article-ai",
+
+  "browser_action": {
+    "default_icon": {
+      "16": "images/icon-16x16.png",
+      "32": "images/icon-32x32.png",
+      "64": "images/icon-64x64.png",
+      "128": "images/icon-128x128.png",
+      "256": "images/icon-256x256.png"
+    },
+    "default_title": "Article AI Extension",
+    "default_popup": "popup.html"
+  },
+
+  "icons": {
+    "16": "images/icon-16x16.png",
+    "32": "images/icon-32x32.png",
+    "64": "images/icon-64x64.png",
+    "128": "images/icon-128x128.png",
+    "256": "images/icon-256x256.png"
+  },
+
+  "background": {
+    "scripts": ["src/background.js"]
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://www.theguardian.com/*"],
+      "js": ["src/boot.js"],
+      "run_at": "document_start"
+    }
+  ],
+
+  "web_accessible_resources": ["src/boot.js", "src/boot.js.map", "src/extension.js", "src/extension.js.map"],
+  "permissions": ["webRequest", "storage", "*://www.theguardian.com/*"]
+}
