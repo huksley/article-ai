@@ -237,13 +237,15 @@ def get_keywords(doc, keyword_model, top_n=KEYWORDS_DEFAULT, lang: str = "en"):
 
     if keyword_model not in KEYWORD_MODELS:
         loading.acquire()
-        start = time.time_ns()
-        logger.info("Loading keyword model %s", keyword_model)
-        KEYWORD_MODELS[keyword_model] = KeyBERT(keyword_model)
-        end = time.time_ns()
-        logger.info("Loaded keyword model %s in %s ms",
-                    keyword_model, (end - start) / 1000000)
-        loading.release()
+        try:
+            start = time.time_ns()
+            logger.info("Loading keyword model %s", keyword_model)
+            KEYWORD_MODELS[keyword_model] = KeyBERT(keyword_model)
+            end = time.time_ns()
+            logger.info("Loaded keyword model %s in %s ms",
+                        keyword_model, (end - start) / 1000000)
+        finally:
+            loading.release()
 
     kw_model = KEYWORD_MODELS.get(keyword_model)
     # Generates [[keyword, score]]
@@ -273,8 +275,6 @@ def load_model(model: str, language="en"):
     Load a model or return it if it's already loaded.
     """
 
-    loading.acquire()
-
     # Check model exists in ModelName class
     if model not in ModelName.__members__:
         raise ValueError(f"Unknown model: {model}")
@@ -282,16 +282,18 @@ def load_model(model: str, language="en"):
     if language is None:
         language = "en"
 
-    if MODELS.get(model) is None:
-        start = time.time_ns()
-        logger.info("Loading model %s", model)
-        nlp = spacy.load(model)
-        nlp.add_pipe("spacytextblob")
-        MODELS[model] = nlp
-        end = time.time_ns()
-        logger.info("Loaded model in %i ms", (end - start) / 1000000)
-
-    loading.release()
+    loading.acquire()
+    try:
+        if MODELS.get(model) is None:
+            start = time.time_ns()
+            logger.info("Loading model %s", model)
+            nlp = spacy.load(model)
+            nlp.add_pipe("spacytextblob")
+            MODELS[model] = nlp
+            end = time.time_ns()
+            logger.info("Loaded model in %i ms", (end - start) / 1000000)
+    finally:
+        loading.release()
     return MODELS[model]
 
 
