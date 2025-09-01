@@ -19,7 +19,7 @@ const invokePostCssLoader = (src) => {
           emitWarning: (...args) => logger.warn("Warning", ...args),
           emitError: (err) => {
             logger.error("Error", err);
-            error = err
+            error = err;
           },
           resourcePath: __dirname,
           fs,
@@ -58,15 +58,17 @@ const renderOne = async (scss, componentFile, componentName) => {
   const relSource = path.relative(root, scss);
 
   const relComponentFile = path.relative(root, componentFile);
-  const prePostcss = result.css.toString().replace(/(\@tailwind ([a-zA-Z_0-9]+))/g, (_match, _full, name) =>
-       `/*! === Tailwind layer ${name} === */
+  const prePostcss = result.css.toString().replace(
+    /(\@tailwind ([a-zA-Z_0-9]+))/g,
+    (_match, _full, name) =>
+      `/*! === Tailwind layer ${name} === */
 @tailwind ${name};
 /*! === Tailwind layer ${name} end === */
 `
   );
   const [error, intermediary] = await invokePostCssLoader(prePostcss);
   if (error) {
-    throw error
+    throw error;
   }
   const css = intermediary
     // Move under component generated name
@@ -101,11 +103,15 @@ ${css
 \`;
 
 export const ${componentName} = ({
+  style,
+  className,
   children
 }: {
+  style?: React.CSSProperties;
+  className?: string;
   children: React.ReactNode;
 }) => (
-    <${componentName}Css className="globalStyle">{children}</${componentName}Css>
+    <${componentName}Css className={"globalStyle" + (className ? " " + className : "")} style={style}>{children}</${componentName}Css>
   );
 `;
 

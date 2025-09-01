@@ -1,7 +1,6 @@
 import React, { useCallback } from "react";
 import ReactDOM from "react-dom";
 import browser, { tabs } from "webextension-polyfill";
-import { sendMessage } from "./communication";
 import { GlobalStyle } from "./GlobalStyle";
 import logger from "./logger";
 

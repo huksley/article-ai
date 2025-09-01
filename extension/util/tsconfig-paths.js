@@ -18,7 +18,7 @@ const logger = console;
  * }
  * ```
  */
-const paths = file => {
+const paths = (file) => {
   file = file || "./tsconfig.json";
   const json = readFileSync(file, { encoding: "utf8" });
   const tsconfig = JSON.parse(json);
@@ -48,21 +48,15 @@ const paths = file => {
     }
 
     if (!Array.isArray(mappings)) {
-      throw new Error(
-        "tsconfig path mapping for " + path + " should be an array: " + mappings
-      );
+      throw new Error("tsconfig path mapping for " + path + " should be an array: " + mappings);
     }
 
     if (mappings.length != 1) {
-      throw new Error(
-        "tsconfig path mapping for " + path + " should be 1 element array: " + mappings
-      );
+      throw new Error("tsconfig path mapping for " + path + " should be 1 element array: " + mappings);
     }
 
     if (!mappings[0].endsWith("/*")) {
-      throw new Error(
-        "tsconfig path mapping for " + path + " should end with /*: " + mappings[0]
-      );
+      throw new Error("tsconfig path mapping for " + path + " should end with /*: " + mappings[0]);
     }
 
     // Remove /* from the end

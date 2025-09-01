@@ -29,3 +29,19 @@ declare module "page-metadata-parser" {
   const metadataRuleSets: any;
   export { getMetadata, metadataRuleSets };
 }
+
+declare module "@/src/element-picker/index" {
+  class ElementPicker {
+    constructor(options?: {
+      container: HTMLElement;
+      action?: {
+        trigger: "click";
+        hover?: (element: HTMLElement) => void;
+        callback?: (element: HTMLElement) => void;
+      };
+    });
+
+    close(): void;
+  }
+  export { ElementPicker };
+}

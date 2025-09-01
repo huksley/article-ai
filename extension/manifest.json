@@ -1,10 +1,10 @@
 {
   "manifest_version": 2,
-  "name": "Article AI  Extension",
-  "short_name": "article-ai-extension",
+  "name": "Extension",
+  "short_name": "test-extension",
   "version": "$VERSION.$BUILD_NUMBER",
-  "author": "Ruslan Gainutdinov <ruslan@sanfrancisco.fi>",
-  "description": "Easily check article",
+  "author": "Ruslan Gainutdinov <ruslan@wizecore.com>",
+  "description": "Browser extension automation platform. Run on theguardian.com, twitter.com, linkedin.com, booking.com",
   "homepage_url": "https://github.com/huksley/article-ai",
 
   "browser_action": {
@@ -15,7 +15,7 @@
       "128": "images/icon-128x128.png",
       "256": "images/icon-256x256.png"
     },
-    "default_title": "Article AI Extension",
+    "default_title": "Extension",
     "default_popup": "popup.html"
   },
 
@@ -33,12 +33,11 @@
 
   "content_scripts": [
     {
-      "matches": ["*://www.theguardian.com/*"],
       "js": ["src/boot.js"],
       "run_at": "document_start"
     }
   ],
 
-  "web_accessible_resources": ["src/boot.js", "src/boot.js.map", "src/extension.js", "src/extension.js.map"],
-  "permissions": ["webRequest", "storage", "*://www.theguardian.com/*"]
+  "web_accessible_resources": ["src/*", "assets/*", "images/*", "util/*"],
+  "permissions": ["storage"]
 }

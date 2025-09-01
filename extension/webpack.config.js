@@ -2,8 +2,9 @@ const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
 const webpack = require("webpack");
 const dotenv = require("dotenv");
-const paths = require("./src/tsconfig-paths");
-const { WebpackPlugin: GenerateStyledCssPlugin } = require("./src/generate-wrapper");
+const paths = require("./util/tsconfig-paths");
+const { WebpackPlugin: GenerateStyledCssPlugin } = require("./util/generate-wrapper");
+dotenv.config();
 
 const createBuildNumber = () => {
   // Reuse last build date
@@ -33,16 +34,23 @@ majorMinor.splice(2, 1);
 
 const env = new webpack.EnvironmentPlugin({
   GIT_TAGS: process.env.GIT_TAGS || "dev",
+  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
   EXTENSION_URL:
     process.env.EXTENSION_URL ||
     `https://chrome.google.com/webstore/detail/${manifest.short_name}/inbhlhnaeeggeicaockcoigiohagecfd`,
-  LOG_AUDIT: process.env.NODE_ENV === "production" ? "0" : "1",
-  LOG_DUMP: "0",
-  LOG_VERBOSE: process.env.NODE_ENV === "production" ? "0" : "1",
-  LOG_INFO: process.env.NODE_ENV === "production" ? "1" : "1",
+  LOG_VERBOSE: process.env.LOG_VERBOSE ?? (process.env.NODE_ENV === "production" ? "0" : "1"),
   NODE_ENV: process.env.NODE_ENV || "development",
   VERSION: majorMinor.join("."),
 });
+
+const extractHostnames = (description) => {
+  const regexDomain = /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+)\.[a-zA-Z0-9-]+/g;
+  const matches = description.match(regexDomain);
+  if (!matches) {
+    throw new Error(`No domains found in description: ${description}`);
+  }
+  return matches.map((m) => m.replace(/https?:\/\//, "").replace(/www\./, ""));
+};
 
 /** @type {import('webpack').Configuration} */
 module.exports = {
@@ -180,13 +188,20 @@ module.exports = {
         {
           from: "manifest.json",
           transform(content) {
-            return content
+            const str = content
               .toString()
               .replace(/\$BUILD_NUMBER/g, createBuildNumber())
               .replace(/\$VERSION/g, majorMinor.join("."));
+            const json = JSON.parse(str);
+            const domains = extractHostnames(json.description);
+            const matches = domains.map((d) => [`*://${d}/*`, `*://*.${d}/*`]).flat();
+            json.content_scripts[0].matches = matches;
+            json.permissions.push(...matches);
+            console.log("Manifest", JSON.stringify(json, null, 2));
+            return JSON.stringify(json, null, 2);
           },
         },
-        { from: "src/popup-fix.js", to: "src/" },
+        { from: "util/popup-fix.js", to: "util/" },
         {
           from: "*.html",
           to: "[name][ext]",

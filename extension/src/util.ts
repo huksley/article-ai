@@ -1,19 +1,52 @@
-import logger from "../../lib/logger";
-import { RecipientChange } from "./GMailJSExtensionStrategy";
+import logger from "./logger";
 import { unmountComponentAtNode } from "react-dom";
-import { parseAddress } from "@/lib/util";
+import { Root, createRoot } from "react-dom/client";
 
 export function findElement(root: Node, xpath: string) {
   let e: Element | null = null;
   try {
-    e = document.evaluate(xpath, root, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
-      .singleNodeValue as Element;
+    e = document.evaluate(xpath, root, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue as Element;
     return e;
   } catch (error) {
     logger.warn("Failed to find expression", error.message, error);
   }
   return e;
 }
+
+const reactRoots = new Map<number, Root>();
+let reactRootId = 500;
+
+/**
+ * Creates React root element, save it in internal state so we can refer by element
+ */
+export const createReactRoot = (element: Element) => {
+  const root = createRoot(element);
+  const id = element.getAttribute("--extension-root-id");
+  const idNum = typeof id === "string" ? parseInt(id, 10) : reactRootId++;
+  reactRoots.set(idNum, root);
+  return root;
+};
+
+/**
+ * A replacement for ReactDOM.unmountComponentAtNode and we will handle only our own roots
+ */
+export const unmountReactRoot = (element: Element) => {
+  const id = element.getAttribute("--extension-root-id");
+  const idNum = typeof id === "string" ? parseInt(id, 10) : undefined;
+  if (idNum === undefined) {
+    logger.warn("Not a known React root element", element);
+    return;
+  }
+
+  const root = reactRoots.get(idNum);
+  if (root) {
+    root.unmount();
+    reactRoots.delete(idNum);
+    element.removeAttribute("--extension-root-id");
+  } else {
+    logger.warn("Cannot find React root", element, "id", idNum);
+  }
+};
 
 /**
  * Creates element, or if it exists, removes all childs.
@@ -30,7 +63,7 @@ export const createRootElement = (document: Document, id: string, prepend?: Elem
     if (prepend) {
       prepend.prepend(e);
     } else {
-      document.body.appendChild(e);
+      (document.body ?? document.documentElement).appendChild(e);
     }
   } else {
     /** If two copies of extension are working, this can cause errors */
@@ -40,7 +73,7 @@ export const createRootElement = (document: Document, id: string, prepend?: Elem
       // Do not care
     }
 
-    Array.from(e.childNodes).forEach(ch => {
+    Array.from(e.childNodes).forEach((ch) => {
       try {
         e.removeChild(ch);
       } catch (e) {
@@ -59,7 +92,7 @@ export async function waitForSelector(root: HTMLElement, query: string, ms?: num
     e = root.querySelector(query) || undefined;
     const startTime = Date.now();
     while (e === undefined) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       e = root.querySelector(query) || undefined;
       if (e === undefined && Date.now() - startTime > ms) {
         logger.warn("Timed out trying to find query selector", query);
@@ -81,7 +114,7 @@ export async function waitForSelectorAll(root: HTMLElement, query: string, ms?: 
     l = Array.from(root.querySelectorAll(query));
     const startTime = Date.now();
     while (l.length === 0) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       l = Array.from(root.querySelectorAll(query));
       if (l.length === 0 && Date.now() - startTime > ms) {
         logger.warn("Timed out trying to find query selector", query, Date.now() - startTime);
@@ -101,13 +134,11 @@ export async function waitForElement(root: Node, xpath: string, seconds?: number
   seconds = seconds || 10;
   let e: Element | undefined = undefined;
   try {
-    e = document.evaluate(xpath, root, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
-      .singleNodeValue as Element;
+    e = document.evaluate(xpath, root, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue as Element;
     const startTime = new Date().getTime();
     while (e === null) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      e = document.evaluate(xpath, root, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
-        .singleNodeValue as Element;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      e = document.evaluate(xpath, root, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue as Element;
       if (e === null && new Date().getTime() - startTime > seconds * 1000) {
         logger.warn("Failed to find", xpath);
         return undefined;
@@ -125,23 +156,11 @@ export async function waitForElements(root: Node, xpath: string, seconds?: numbe
   seconds = seconds || 10;
   let e = null;
   try {
-    e = document.evaluate(
-      xpath,
-      root,
-      null,
-      XPathResult.FIRST_ORDERED_NODE_TYPE,
-      null
-    ).singleNodeValue;
+    e = document.evaluate(xpath, root, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
     const startTime = new Date().getTime();
     while (e === null) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      e = document.evaluate(
-        xpath,
-        root,
-        null,
-        XPathResult.FIRST_ORDERED_NODE_TYPE,
-        null
-      ).singleNodeValue;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      e = document.evaluate(xpath, root, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
       if (e === null && new Date().getTime() - startTime > seconds * 1000) {
         logger.warn("Failed to find", xpath);
         return [];
@@ -152,13 +171,7 @@ export async function waitForElements(root: Node, xpath: string, seconds?: numbe
   }
 
   logger.verbose("Found", xpath, "first element", e);
-  const snapshot = document.evaluate(
-    xpath,
-    root,
-    null,
-    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-    null
-  );
+  const snapshot = document.evaluate(xpath, root, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
   const result = [];
   for (let i = 0; i < snapshot.snapshotLength; i++) {
     result.push(snapshot.snapshotItem(i));
@@ -194,13 +207,10 @@ export const elv = (id: string) => {
 
 export type DispatchEventType = "input" | "focus" | "tab" | "enter" | "click";
 
-export const dispatchEvent = (
-  events: DispatchEventType[] | DispatchEventType,
-  element: HTMLElement
-) => {
+export const dispatchEvent = (events: DispatchEventType[] | DispatchEventType, element: HTMLElement) => {
   events = Array.isArray(events) ? events : [events];
 
-  events.forEach(event => {
+  events.forEach((event) => {
     if (event === "click") {
       element.click();
     } else if (event === "input") {
@@ -222,7 +232,7 @@ export const dispatchEvent = (
     } else if (event === "focus") {
       element.focus();
       const keyboardEvent = new KeyboardEvent("focus", {
-        bubbles: true
+        bubbles: true,
       });
       element.dispatchEvent(keyboardEvent);
     } else if (event === "tab") {
@@ -231,7 +241,7 @@ export const dispatchEvent = (
         key: "Tab",
         keyCode: 9,
         view: window,
-        bubbles: true
+        bubbles: true,
       });
       element.dispatchEvent(keyboardEvent);
     } else if (event === "enter") {
@@ -240,7 +250,7 @@ export const dispatchEvent = (
         key: "Enter",
         keyCode: 13,
         view: window,
-        bubbles: true
+        bubbles: true,
       });
       element.dispatchEvent(keyboardEvent);
     } else {
@@ -249,13 +259,57 @@ export const dispatchEvent = (
   });
 };
 
-export const parseEventRecipient = (event: RecipientChange) => {
-  return event.recipients.to
-    .map(a => a.address)
-    .map(parseAddress)
-    .join(",");
-};
-
 export const isVisible = (e: HTMLElement) => {
   return !!e.offsetParent;
+};
+
+/**
+ * https://web.dev/articles/trusted-types#rewrite_the_offending_code
+ * https://w3c.github.io/trusted-types/dist/spec/#trusted-type-policy
+ * https://developer.mozilla.org/en-US/docs/Web/API/Trusted_Types_API
+ */
+let policy:
+  | {
+      createHTML: (html: string) => string;
+    }
+  | undefined = undefined;
+
+export const trustedTypes = (
+  window as {
+    trustedTypes?: {
+      createPolicy: (
+        policyName: string,
+        policyOptions?: {
+          createHTML: (html: string) => string;
+        }
+      ) => {
+        createHTML: (html: string) => string;
+      };
+      getPropertyType: (tag: string, property: string) => string;
+    };
+  }
+)?.trustedTypes;
+
+if (trustedTypes?.createPolicy) {
+  // Feature testing
+  policy = trustedTypes.createPolicy("safeEscapePolicy", {
+    createHTML: (string) => string,
+  });
+}
+
+export const createTrustedHTML = (html: string) => {
+  if (policy) {
+    return policy.createHTML(html);
+  } else {
+    return html;
+  }
+};
+
+/**
+ * Safely assign innerHTML to element, either directly or using
+ * Trusted Types API if available
+ */
+export const assignInnerHTML = (element: HTMLElement, html: string) => {
+  // eslint-disable-next-line no-unsanitized/property
+  element.innerHTML = createTrustedHTML(html);
 };

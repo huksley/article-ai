@@ -4,7 +4,9 @@ import { createRoot } from "react-dom/client";
 import { GlobalStyle } from "./GlobalStyle";
 
 function App() {
-  return <GlobalStyle>Here</GlobalStyle>;
+  return <GlobalStyle>
+    <h1 className="text-white">Extension installed</h1>
+  </GlobalStyle>;
 }
 
 const element = document.getElementById("react");
