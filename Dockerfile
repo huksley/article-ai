@@ -7,9 +7,8 @@ ENV FLASK_RUN_HOST 0.0.0.0
 ENV FLASK_DEBUG 0
 
 RUN apt-get update && \
-    apt-get install -y curl && \
+    apt-get install -y curl build-essential gcc g++ make automake autoconf libtool gfortran pkg-config libopenblas-dev && \
     pip install pipenv
-
 RUN mkdir -p /app
 COPY Pipfile* /app
 WORKDIR /app
