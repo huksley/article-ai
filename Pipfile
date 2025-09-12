@@ -23,7 +23,7 @@ psutil = "*"
 keybert = {extras = ["spacy"], version = ">=0.8.0,<1.0.0"}
 sentence-transformers = ">=2.2.0,<2.3.0"
 datasets = ">=2.0.0,<3.0.0"
-torch = {version = ">=2.0.0,<3.0.0", source = "pytorch-cpu"}
+torch = {version = "==2.8.0", source = "pytorch-cpu"}
 flask-limiter = "*"
 werkzeug = "*"
 gunicorn = "*"

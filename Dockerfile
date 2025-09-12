@@ -14,6 +14,8 @@ RUN mkdir -p /var/log/app
 COPY Pipfile* /app
 WORKDIR /app
 RUN pipenv sync
+RUN pipenv run pip install torch==2.8.0+cpu --index-url https://download.pytorch.org/whl/cpu
+RUN pipenv run python -c "import torch; print(torch.cuda.is_available());"
 COPY download.sh /app
 RUN pipenv run download
 

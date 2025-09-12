@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 SPACY_VERSION=$(python -c "import spacy; print('.'.join(spacy.about.__version__.split('.')[0:2]))")
 echo "Downloading SpaCy packages $SPACY_VERSION"
