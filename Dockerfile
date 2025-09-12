@@ -10,9 +10,10 @@ RUN apt-get update && \
     apt-get install -y curl build-essential gcc g++ make automake autoconf libtool gfortran pkg-config libopenblas-dev && \
     pip install pipenv
 RUN mkdir -p /app
+RUN mkdir -p /var/log/app
 COPY Pipfile* /app
 WORKDIR /app
-RUN pipenv install
+RUN pipenv sync
 COPY download.sh /app
 RUN pipenv run download
 

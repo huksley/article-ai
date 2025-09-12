@@ -1,15 +1,32 @@
 version: "2.4"
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: article-ai-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - redis_data:/data
+
   app:
     build: .
     image: article-ai
     container_name: article-ai
     restart: always
+    depends_on:
+      - redis
     healthcheck:
       test: ["CMD", "curl", "-s", "-f", "-i", "http://localhost:8000/"]
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
+    environment:
+      - FLASK_LIMITER_STORAGE=redis://redis:6379
+      - FLASK_LOG_FILE_PATH=/var/log/app/flask.log
     cpu_count: 2
     cpu_percent: 80
     mem_limit: 4g
     memswap_limit: 4g
+
+volumes:
+  redis_data:
