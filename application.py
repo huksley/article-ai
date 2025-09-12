@@ -133,9 +133,10 @@ MODELS = {}
 KEYWORD_MODELS = {}
 KEYWORDS_DEFAULT = 20
 KEYWORD_MODEL_DEFAULT = "all-MiniLM-L6-v2"
-
+logger.info("CUDA_VISIBLE_DEVICES: %s", os.environ.get('CUDA_VISIBLE_DEVICES'))
 # if CUDA_VISIBLE_DEVICES defined and not empty, use GPU
 CUDA_VISIBLE_DEVICES = os.environ.get('CUDA_VISIBLE_DEVICES')
+
 if CUDA_VISIBLE_DEVICES is not None and CUDA_VISIBLE_DEVICES != "":
     logger.info("Using GPU")
     spacy.require_gpu()

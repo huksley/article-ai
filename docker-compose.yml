@@ -23,7 +23,6 @@ services:
     environment:
       - FLASK_LIMITER_STORAGE=redis://redis:6379
       - FLASK_LOG_FILE_PATH=/var/log/app/flask.log
-      - CUDA_VISIBLE_DEVICES=""
     cpu_count: 2
     cpu_percent: 80
     mem_limit: 4g

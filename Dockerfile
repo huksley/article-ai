@@ -5,7 +5,6 @@ ENV DEBIAN_FRONTEND 'noninteractive'
 ENV CI true
 ENV FLASK_RUN_HOST 0.0.0.0
 ENV FLASK_DEBUG 0
-ENV CUDA_VISIBLE_DEVICES ""
 
 RUN apt-get update && \
     apt-get install -y curl build-essential gcc g++ make automake autoconf libtool gfortran pkg-config libopenblas-dev && \
