@@ -1,4 +1,4 @@
-FROM python:3.13
+FROM python:3.11
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV DEBIAN_FRONTEND 'noninteractive'
@@ -16,7 +16,10 @@ RUN pipenv install
 COPY download.sh /app
 RUN pipenv run download
 
-COPY . /app
+COPY static /app/static
+COPY templates /app/templates
+COPY application.py /app/application.py
+COPY download.sh /app/download.sh
 
 EXPOSE 8000
 CMD ["pipenv", "run", "app"]
