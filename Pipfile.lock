@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "716c0c638197cdb38ccd0b51b39ff52479f40fa2d17461f44b674fddb2459f9d"
+            "sha256": "6fd68974505512b32f13d8b0f1d1597dc8b6499e41c30c7d44d1cc992cbd9cb1"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -11,6 +11,11 @@
             {
                 "name": "pypi",
                 "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            },
+            {
+                "name": "pytorch-cpu",
+                "url": "https://download.pytorch.org/whl/cpu",
                 "verify_ssl": true
             }
         ]
