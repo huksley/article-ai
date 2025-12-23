@@ -11,4 +11,6 @@ serverless_wsgi.py
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
-extension
+#extension
+extension/dist
+extension/build
